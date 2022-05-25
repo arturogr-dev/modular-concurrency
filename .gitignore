@@ -1,0 +1,7 @@
+# Editors files.
+*.sw*
+.vscode
+.DS_Store
+
+# Build output.
+build/
