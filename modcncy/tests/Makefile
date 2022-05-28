@@ -25,7 +25,7 @@ LNK_NAMES = -lmodcncy -lgtest -lgtest_main -lpthread
 # Use `flakiness` as an input from user to repeat the test multiple times.
 flakiness = no
 ifneq ($(flakiness), no)
-	GTEST_FLAGS = --gtest_repeat=100 --gtest_break_on_failure
+	gtest_flags = --gtest_repeat=100 --gtest_break_on_failure
 endif
 
 # Add your tests here with the prefix `run_` and as a target.
@@ -57,7 +57,7 @@ barrier_test: barrier_test.cc
 	$(CXX_CMPLR) $< $(INC_PATHS) $(LNK_PATHS) $(LNK_NAMES) $(CXX_FLAGS) -o $(BUILD_DIR)/run_$@
 run_barrier_test: barrier_test
 	$(info $(__CYAN__)-- Running $@$(__SGR0__))
-	$(BUILD_DIR)/$@ $(GTEST_FLAGS)
+	$(BUILD_DIR)/$@ $(gtest_flags)
 
 test: $(TESTS)
 	
