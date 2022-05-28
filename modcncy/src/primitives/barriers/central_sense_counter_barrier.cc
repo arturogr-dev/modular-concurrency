@@ -17,7 +17,7 @@ void CentralSenseCounterBarrier::Wait(int num_threads, WaitingPolicy policy) {
       WaitingWithPolicy(policy);
   } else {
     // Last thread enters the barrier.
-    // Reset number of spinning threads and increase the step.
+    // Reset number of spinning threads and toggle the global sense.
     spinning_threads_.store(0, std::memory_order_relaxed);
     sense_.store(~my_sense, std::memory_order_release);
   }
