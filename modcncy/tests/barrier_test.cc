@@ -3,7 +3,6 @@
 // -----------------------------------------------------------------------------
 
 #include <gtest/gtest.h>
-#include <modcncy/barrier.h>
 
 #include <algorithm>
 #include <cstring>
@@ -11,6 +10,8 @@
 #include <random>
 #include <thread>  // NOLINT(build/c++11)
 #include <vector>
+
+#include "modcncy/barrier.h"
 
 // =============================================================================
 TEST(BarrierCreationTest, NewDefaultBarrier) {
