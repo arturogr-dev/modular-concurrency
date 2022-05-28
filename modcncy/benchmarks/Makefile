@@ -18,8 +18,8 @@ CXX_CMPLR = g++
 CXX_FLAGS = -std=c++11 -Wall -Werror -Wextra -pedantic -O2
 
 BUILD_DIR = ./build
-INC_PATHS = -I../../modcncy/include -I../../third_party/benchmark/benchmark/include
-LNK_PATHS = -L../../modcncy/build/lib -L../../third_party/benchmark/build/lib
+INC_PATHS = -I../include -I../../third_party/benchmark/benchmark/include
+LNK_PATHS = -L../build/lib -L../../third_party/benchmark/build/lib
 LNK_NAMES = -lmodcncy -lbenchmark -lbenchmark_main -lpthread
 
 # Use `repetitions` as an input from user to repeat the benchmark multiple times.

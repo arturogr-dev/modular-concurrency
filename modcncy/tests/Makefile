@@ -18,8 +18,8 @@ CXX_CMPLR = g++
 CXX_FLAGS = -std=c++11 -Wall -Werror -Wextra -pedantic -O2
 
 BUILD_DIR = ./build
-INC_PATHS = -I../../modcncy/include -I../../third_party/googletest/googletest/include
-LNK_PATHS = -L../../modcncy/build/lib -L../../third_party/googletest/build/lib
+INC_PATHS = -I../include -I../../third_party/googletest/googletest/include
+LNK_PATHS = -L../build/lib -L../../third_party/googletest/build/lib
 LNK_NAMES = -lmodcncy -lgtest -lgtest_main -lpthread
 
 # Use `flakiness` as an input from user to repeat the test multiple times.
