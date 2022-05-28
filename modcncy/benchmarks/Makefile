@@ -25,13 +25,13 @@ LNK_NAMES = -lmodcncy -lbenchmark -lbenchmark_main -lpthread
 # Use `repetitions` as an input from user to repeat the benchmark multiple times.
 # Usually use it with some benchmark filter (use `BENCH_ARGS`) to avoid an unnecessary big report.
 repetitions = no
-BENCH_FLAGS = --benchmark_counters_tabular=true
+benchmark_flags = --benchmark_counters_tabular=true
 ifneq ($(repetitions), no)
-	BENCH_FLAGS += --benchmark_enable_random_interleaving=true --benchmark_repetitions=10 --benchmark_min_time=0.1
+	benchmark_flags += --benchmark_enable_random_interleaving=true --benchmark_repetitions=10 --benchmark_min_time=0.1
 endif
 
-# Use `BENCH_ARGS` as an input for additional benchmark flags. For example:
-# make BENCH_ARGS=--benchmark_filter=<some_regex>
+# Use `benchmark_args` as an input for additional benchmark flags. For example:
+# $ make benchmark_args=--benchmark_filter=<some_regex>
 
 # Add your benchmarks here with the prefix `run_` and as a target.
 BENCHMARKS = run_barrier_benchmark
@@ -62,7 +62,7 @@ barrier_benchmark: barrier_benchmark.cc
 	$(CXX_CMPLR) $< $(INC_PATHS) $(LNK_PATHS) $(LNK_NAMES) $(CXX_FLAGS) -o $(BUILD_DIR)/run_$@
 run_barrier_benchmark: barrier_benchmark
 	$(info $(__CYAN__)-- Running $@$(__SGR0__))
-	$(BUILD_DIR)/$@ $(BENCH_FLAGS) $(BENCH_ARGS)
+	$(BUILD_DIR)/$@ $(benchmark_flags) $(benchmark_args)
 
 benchmark: $(BENCHMARKS)
 	
