@@ -3,11 +3,12 @@
 // -----------------------------------------------------------------------------
 
 #include <benchmark/benchmark.h>
-#include <modcncy/barrier.h>
 
 #include <string>
 #include <thread>  // NOLINT(build/c++11)
 #include <vector>
+
+#include "modcncy/barrier.h"
 
 // Supported Barrier Types:
 //   + 0: modcncy::BarrierType::kCentralSenseCounterBarrier.
