@@ -156,8 +156,7 @@ void BM_BarrierInternalThreads(
       threads.emplace_back([&] { barrier->Wait(num_threads, policy); });
     state.ResumeTiming();
     // Main thread also contends. Measure the time it takes to the main thread
-    // to complete a number of `barrier_iterations` while contending with the
-    // other threads at each stage.
+    // to go through the barrier.
     barrier->Wait(num_threads, policy);
     // Prepare for next benchmark iteration, but pause the timer to avoid
     // measuring the overhead of joining the additional threads.
