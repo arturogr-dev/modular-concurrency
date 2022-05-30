@@ -129,13 +129,13 @@ void BarrierInternalThreadsArgs(benchmark::internal::Benchmark* b) {
 
 // =============================================================================
 // Benchmark: Barrier Synchronization Primitive launching internal threads.
-// This benchmark internally launches multiple threads to hit a barrier a given
-// number of times. As contention degrades performance, the overall time to
-// complete the same number of barrier iterations should increase as the number
-// of threads increases. Use this benchmark to measure how long it takes a
-// thread to finish this same number of iterations as the number of threads
-// increases. As opposed to the `BM_Barrier` benchmark, the goal of this
-// scenario is to make the wall time a more meaningful measurement.
+// This benchmark internally launches multiple threads to go through the barrier
+// multiple times. As contention degrades performance, the overall time to go
+// through the barrier should increase as the number of threads increases. Use
+// this benchmark to measure how long it takes a thread to go through the
+// barrier as the number of threads increases. As opposed to the previous
+// benchmark, the goal of this scenario is to make the wall time a more
+// meaningful measurement.
 // The wall time is expected to increase as the number of threads increases.
 void BM_BarrierInternalThreads(
     benchmark::State& state) {  // NOLINT(runtime/references)
