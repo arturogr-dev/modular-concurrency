@@ -3,13 +3,12 @@
 // -----------------------------------------------------------------------------
 
 #include <benchmark/benchmark.h>
+#include <modcncy/barrier.h>
 
 #include <array>
 #include <string>
 #include <thread>  // NOLINT(build/c++11)
 #include <vector>
-
-#include "modcncy/barrier.h"
 
 namespace barrier_type {
 // Supported Barrier Types:
