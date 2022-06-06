@@ -2,9 +2,8 @@
 // Use of this source code is governed by the license found in the LICENSE file.
 // -----------------------------------------------------------------------------
 
-#include "modcncy/barrier.h"
-
 #include <gtest/gtest.h>
+#include <modcncy/barrier.h>
 
 #include <algorithm>
 #include <cstring>
