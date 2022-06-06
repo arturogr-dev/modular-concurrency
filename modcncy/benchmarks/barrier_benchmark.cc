@@ -4,46 +4,45 @@
 
 #include <benchmark/benchmark.h>
 
+#include <array>
 #include <string>
 #include <thread>  // NOLINT(build/c++11)
 #include <vector>
 
 #include "modcncy/barrier.h"
 
+namespace barrier_type {
 // Supported Barrier Types:
 //   + 0: modcncy::BarrierType::kCentralSenseCounterBarrier.
 //   + 1: modcncy::BarrierType::kCentralStepCounterBarrier.
-namespace barrier_type {
 static constexpr modcncy::BarrierType kCentralSenseCounterBarrier =
     modcncy::BarrierType::kCentralSenseCounterBarrier;
 static constexpr modcncy::BarrierType kCentralStepCounterBarrier =
     modcncy::BarrierType::kCentralStepCounterBarrier;
-
 // Benchmark arguments definition requires a `std::vector` of `int64_t` types:
 // `Benchmark* Args(const std::vector<int64_t>& args);`
-static const std::vector<int64_t> kBarrierTypes = {
+static constexpr std::array<int64_t, 2> kBarrierTypes = {
     static_cast<int64_t>(kCentralSenseCounterBarrier),
     static_cast<int64_t>(kCentralStepCounterBarrier)};
 }  // namespace barrier_type
 
-// Supported Waiting Policies:
-//   + 0: modcncy::WaitingPolicy::kActiveWaiting
-//   + 1: modcncy::WaitingPolicy::kPassiveWaiting
-//   + 2: modcncy::WaitingPolicy::kPausedWaiting
-namespace waiting_policy {
-static constexpr modcncy::WaitingPolicy kActiveWaiting =
-    modcncy::WaitingPolicy::kActiveWaiting;
-static constexpr modcncy::WaitingPolicy kPassiveWaiting =
-    modcncy::WaitingPolicy::kPassiveWaiting;
-static constexpr modcncy::WaitingPolicy kPausedWaiting =
-    modcncy::WaitingPolicy::kPausedWaiting;
-
+namespace wait_policy {
+// Supported Wait Policies:
+//   + 0: modcncy::WaitPolicy::kActiveWaiting
+//   + 1: modcncy::WaitPolicy::kPassiveWaiting
+//   + 2: modcncy::WaitPolicy::kPausedWaiting
+static constexpr modcncy::WaitPolicy kActiveWaiting =
+    modcncy::WaitPolicy::kActiveWaiting;
+static constexpr modcncy::WaitPolicy kPassiveWaiting =
+    modcncy::WaitPolicy::kPassiveWaiting;
+static constexpr modcncy::WaitPolicy kPausedWaiting =
+    modcncy::WaitPolicy::kPausedWaiting;
 // Benchmark arguments definition requires a `std::vector` of `int64_t` types:
 // `Benchmark* Args(const std::vector<int64_t>& args);`
-static const std::vector<int64_t> kWaitingPolicies = {
+static constexpr std::array<int64_t, 3> kWaitPolicies = {
     static_cast<int64_t>(kActiveWaiting), static_cast<int64_t>(kPassiveWaiting),
     static_cast<int64_t>(kPausedWaiting)};
-}  // namespace waiting_policy
+}  // namespace wait_policy
 
 // =============================================================================
 // Barrier type label.
@@ -56,8 +55,8 @@ std::string type_label(modcncy::BarrierType type) {
 
 // =============================================================================
 // Waiting policy label.
-std::string policy_label(modcncy::WaitingPolicy policy) {
-  using namespace waiting_policy;  // NOLINT(build/namespaces)
+std::string policy_label(modcncy::WaitPolicy policy) {
+  using namespace wait_policy;  // NOLINT(build/namespaces)
   if (policy == kActiveWaiting) return "kActiveWaiting";
   if (policy == kPassiveWaiting) return "kPassiveWaiting";
   if (policy == kPausedWaiting) return "kPausedWaiting";
@@ -66,84 +65,36 @@ std::string policy_label(modcncy::WaitingPolicy policy) {
 
 // =============================================================================
 // Benchmark label.
-std::string label(modcncy::BarrierType type, modcncy::WaitingPolicy policy) {
+std::string label(modcncy::BarrierType type, modcncy::WaitPolicy policy) {
   return type_label(type) + " | " + policy_label(policy);
 }
 
 // =============================================================================
-// `BM_BarrierGbenchThreads` benchmark arguments.
-void BarrierGbenchThreadsArgs(benchmark::internal::Benchmark* b) {
-  // Try all barrier types and all waiting policies for each barrier type.
+// `BM_Barrier` benchmark arguments.
+void BarrierArgs(benchmark::internal::Benchmark* b) {
+  // Try all barrier types and all wait policies for each barrier type over a
+  // different number of execution threads.
+  const int cpus = std::thread::hardware_concurrency();
   for (const auto type : barrier_type::kBarrierTypes)
-    for (const auto policy : waiting_policy::kWaitingPolicies)
-      b->Args({type, policy});
+    for (const auto policy : wait_policy::kWaitPolicies)
+      for (int threads = 1; threads <= cpus; threads *= 2)
+        b->Args({type, policy, threads});
 }
 
 // =============================================================================
-// Benchmark: Barrier Synchronization Primitive using Google-benchmark threads.
-// This is a simple benchmark to measure the overhead of a barrier primitive. It
-// is known that thread contention degrades performance. Use this benchmark to
-// measure how long it takes a thread to go through the barrier primitive as the
-// number of threads increases.
-// The cpu time is expected to increase as the number of threads increases.
-void BM_BarrierGbenchThreads(
-    benchmark::State& state) {  // NOLINT(runtime/references)
-  // Setup.
-  const auto type = static_cast<modcncy::BarrierType>(state.range(0));
-  const auto policy = static_cast<modcncy::WaitingPolicy>(state.range(1));
-  const int num_threads = state.threads();
-  static modcncy::Barrier* barrier = nullptr;
-  if (state.thread_index() == 0) {
-    barrier = modcncy::NewBarrier(type);
-  }
-
-  // Benchmark.
-  for (auto _ : state) {
-    barrier->Wait(num_threads, policy);
-  }
-
-  // Teardown.
-  if (state.thread_index() == 0) {
-    state.SetItemsProcessed(state.iterations());
-    state.SetLabel(label(type, policy));
-    delete barrier;
-  }
-}
-BENCHMARK(BM_BarrierGbenchThreads)
-    ->Apply(BarrierGbenchThreadsArgs)
-    ->ArgNames({"type", "policy"})
-    ->ThreadRange(1, std::thread::hardware_concurrency())
-    ->UseRealTime();
-
-// =============================================================================
-// `BM_BarrierInternalThreads` benchmark arguments.
-void BarrierInternalThreadsArgs(benchmark::internal::Benchmark* b) {
-  // Try all barrier types and all waiting policies for each barrier type over
-  // a different number of execution threads.
-  const int num_cpus = std::thread::hardware_concurrency();
-  for (const auto type : barrier_type::kBarrierTypes)
-    for (const auto policy : waiting_policy::kWaitingPolicies)
-      for (int num_threads = 1; num_threads <= num_cpus; num_threads *= 2)
-        b->Args({type, policy, num_threads});
-}
-
-// =============================================================================
-// Benchmark: Barrier Synchronization Primitive launching internal threads.
+// Benchmark: Barrier Synchronization Primitive.
 // This benchmark internally launches multiple threads to go through the barrier
 // multiple times. As contention degrades performance, the overall time to go
 // through the barrier should increase as the number of threads increases. Use
 // this benchmark to measure how long it takes a thread to go through the
-// barrier as the number of threads increases. As opposed to the previous
-// benchmark, the goal of this scenario is to make the wall time a more
-// meaningful measurement.
-// The wall time is expected to increase as the number of threads increases.
-void BM_BarrierInternalThreads(
-    benchmark::State& state) {  // NOLINT(runtime/references)
+// barrier as the number of threads increases. The wall time is expected to
+// increase as the number of threads increases.
+void BM_Barrier(benchmark::State& state) {  // NOLINT(runtime/references)
   // Setup.
   const auto type = static_cast<modcncy::BarrierType>(state.range(0));
-  const auto policy = static_cast<modcncy::WaitingPolicy>(state.range(1));
-  const int num_threads = state.range(2);
-  auto barrier = modcncy::NewBarrier(type);
+  const auto policy = static_cast<modcncy::WaitPolicy>(state.range(1));
+  const auto num_threads = static_cast<int>(state.range(2));
+  auto barrier = modcncy::Barrier::Create(type);
   std::vector<std::thread> threads;
   threads.reserve(num_threads);
 
@@ -171,7 +122,7 @@ void BM_BarrierInternalThreads(
   state.SetLabel(label(type, policy));
   delete barrier;
 }
-BENCHMARK(BM_BarrierInternalThreads)
-    ->Apply(BarrierInternalThreadsArgs)
+BENCHMARK(BM_Barrier)
+    ->Apply(BarrierArgs)
     ->ArgNames({"type", "policy", "threads"})
     ->UseRealTime();

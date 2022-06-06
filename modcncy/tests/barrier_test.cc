@@ -2,6 +2,8 @@
 // Use of this source code is governed by the license found in the LICENSE file.
 // -----------------------------------------------------------------------------
 
+#include "modcncy/barrier.h"
+
 #include <gtest/gtest.h>
 
 #include <algorithm>
@@ -11,12 +13,10 @@
 #include <thread>  // NOLINT(build/c++11)
 #include <vector>
 
-#include "modcncy/barrier.h"
-
 // =============================================================================
 TEST(BarrierCreationTest, NewDefaultBarrier) {
   // Setup.
-  auto barrier = modcncy::NewBarrier();
+  auto barrier = modcncy::Barrier::Create();
   // Barrier should be instantiated successfully.
   EXPECT_NE(barrier, nullptr);
   // Teardown.
@@ -26,7 +26,8 @@ TEST(BarrierCreationTest, NewDefaultBarrier) {
 // =============================================================================
 TEST(BarrierCreationTest, NewUnsupportedBarrier) {
   // Setup.
-  auto barrier = modcncy::NewBarrier(static_cast<modcncy::BarrierType>(42));
+  auto barrier =
+      modcncy::Barrier::Create(static_cast<modcncy::BarrierType>(42));
   // Barrier should not be instantiated.
   EXPECT_EQ(barrier, nullptr);
   // Teardown.
@@ -44,7 +45,7 @@ INSTANTIATE_TEST_SUITE_P(
 // =============================================================================
 TEST_P(BarrierCreationTest, NewBarrier) {
   // Setup.
-  auto barrier = modcncy::NewBarrier(/*type=*/GetParam());
+  auto barrier = modcncy::Barrier::Create(/*type=*/GetParam());
   // Barrier should be instantiated successfully.
   EXPECT_NE(barrier, nullptr);
   // Teardown.
@@ -53,7 +54,7 @@ TEST_P(BarrierCreationTest, NewBarrier) {
 
 struct TestParams {
   modcncy::BarrierType barrier_type;
-  modcncy::WaitingPolicy waiting_policy;
+  modcncy::WaitPolicy wait_policy;
 };  // TestParams
 class BarrierBehaviorTest : public testing::TestWithParam<TestParams> {};
 
@@ -62,23 +63,23 @@ INSTANTIATE_TEST_SUITE_P(
     testing::Values(
         // All waiting policies for the `kCentralSenseCounterBarrier`.
         TestParams{modcncy::BarrierType::kCentralSenseCounterBarrier,
-                   modcncy::WaitingPolicy::kActiveWaiting},
+                   modcncy::WaitPolicy::kActiveWaiting},
         TestParams{modcncy::BarrierType::kCentralSenseCounterBarrier,
-                   modcncy::WaitingPolicy::kPassiveWaiting},
+                   modcncy::WaitPolicy::kPassiveWaiting},
         TestParams{modcncy::BarrierType::kCentralSenseCounterBarrier,
-                   modcncy::WaitingPolicy::kPausedWaiting},
+                   modcncy::WaitPolicy::kPausedWaiting},
         // All waiting policies for the `kCentralStepCounterBarrier`.
         TestParams{modcncy::BarrierType::kCentralStepCounterBarrier,
-                   modcncy::WaitingPolicy::kActiveWaiting},
+                   modcncy::WaitPolicy::kActiveWaiting},
         TestParams{modcncy::BarrierType::kCentralStepCounterBarrier,
-                   modcncy::WaitingPolicy::kPassiveWaiting},
+                   modcncy::WaitPolicy::kPassiveWaiting},
         TestParams{modcncy::BarrierType::kCentralStepCounterBarrier,
-                   modcncy::WaitingPolicy::kPausedWaiting}));
+                   modcncy::WaitPolicy::kPausedWaiting}));
 
 // =============================================================================
 TEST_P(BarrierBehaviorTest, SimpleReadAfterWrite) {
   // Setup.
-  auto barrier = modcncy::NewBarrier(GetParam().barrier_type);
+  auto barrier = modcncy::Barrier::Create(GetParam().barrier_type);
   EXPECT_NE(barrier, nullptr);
   int shared_variable = 0;  // Variable to protect.
   constexpr int num_threads = 8;
@@ -93,10 +94,10 @@ TEST_P(BarrierBehaviorTest, SimpleReadAfterWrite) {
         // Only the first thread will perform a store operation.
         shared_variable = 1;
         // Make sure it synchronizes with all other threads.
-        barrier->Wait(num_threads, GetParam().waiting_policy);
+        barrier->Wait(num_threads, GetParam().wait_policy);
       } else {
         // All other threads wait until first thread updates the variable.
-        barrier->Wait(num_threads, GetParam().waiting_policy);
+        barrier->Wait(num_threads, GetParam().wait_policy);
         // And then, safely read the updated value.
         EXPECT_EQ(shared_variable, 1);
       }
@@ -111,7 +112,7 @@ TEST_P(BarrierBehaviorTest, SimpleReadAfterWrite) {
 // =============================================================================
 TEST_P(BarrierBehaviorTest, ReadAfterWritePartialSums) {
   // Setup.
-  auto barrier = modcncy::NewBarrier(GetParam().barrier_type);
+  auto barrier = modcncy::Barrier::Create(GetParam().barrier_type);
   EXPECT_NE(barrier, nullptr);
   constexpr uint64_t size = 1000000;
   std::vector<uint64_t> data;
@@ -139,7 +140,7 @@ TEST_P(BarrierBehaviorTest, ReadAfterWritePartialSums) {
       for (uint64_t i = begin; i < end; ++i)
         partial_sums[thread_index] += data[i];
       // Wait until all other threads finish their respective partial sums.
-      barrier->Wait(num_threads, GetParam().waiting_policy);
+      barrier->Wait(num_threads, GetParam().wait_policy);
       // Only the first thread will compute the total sum.
       // If a thread finished computing its partial sum, return.
       if (thread_index > 0) return;
@@ -160,7 +161,7 @@ TEST_P(BarrierBehaviorTest, ReadAfterWritePartialSums) {
 // =============================================================================
 TEST_P(BarrierBehaviorTest, ReusableBarrierBySortingPartialSegments) {
   // Setup.
-  auto barrier = modcncy::NewBarrier(GetParam().barrier_type);
+  auto barrier = modcncy::Barrier::Create(GetParam().barrier_type);
   EXPECT_NE(barrier, nullptr);
   constexpr int size = 1000000;
   std::vector<int> data;
@@ -212,7 +213,7 @@ TEST_P(BarrierBehaviorTest, ReusableBarrierBySortingPartialSegments) {
       // Each thread sorts its designated chunk of data.
       std::sort(data.begin() + begin, data.begin() + end);
       // Wait until all other threads finish sorting their respective segments.
-      barrier->Wait(num_threads, GetParam().waiting_policy);
+      barrier->Wait(num_threads, GetParam().wait_policy);
       // Merging tree.
       int step = 2;
       while (step <= num_threads) {
@@ -224,7 +225,7 @@ TEST_P(BarrierBehaviorTest, ReusableBarrierBySortingPartialSegments) {
               /*segment2=*/&data[begin + segment_size],
               /*size=*/segment_size);
         // Continuining threads must wait for the threads performing merges.
-        barrier->Wait(num_threads / step, GetParam().waiting_policy);
+        barrier->Wait(num_threads / step, GetParam().wait_policy);
         // Prepare for next step.
         step *= 2;
         segment_size *= 2;

@@ -17,9 +17,12 @@ __SGR0__    = $(shell tput sgr0)
 CXX_CMPLR = g++
 CXX_FLAGS = -std=c++11 -Wall -Werror -Wextra -pedantic -O2
 
+MODCNCY_LIB_DIR = ..
+THIRD_PARTY_DIR = ../../third_party
+
 BUILD_DIR = ./build
-INC_PATHS = -I../include -I../../third_party/benchmark/benchmark/include
-LNK_PATHS = -L../build/lib -L../../third_party/benchmark/build/lib
+INC_PATHS = -I$(MODCNCY_LIB_DIR)/include -I$(THIRD_PARTY_DIR)/benchmark/include -I$(THIRD_PARTY_DIR)/benchmark/build/include
+LNK_PATHS = -L$(MODCNCY_LIB_DIR)/build/lib -L$(THIRD_PARTY_DIR)/benchmark/build/src
 LNK_NAMES = -lmodcncy -lbenchmark -lbenchmark_main -lpthread
 
 # Use `repetitions` as an input from user to repeat the benchmark multiple times.

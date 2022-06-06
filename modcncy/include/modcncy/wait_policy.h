@@ -34,8 +34,8 @@
 //
 // -----------------------------------------------------------------------------
 
-#ifndef MODCNCY_INCLUDE_MODCNCY_WAITING_POLICY_H_
-#define MODCNCY_INCLUDE_MODCNCY_WAITING_POLICY_H_
+#ifndef MODCNCY_INCLUDE_MODCNCY_WAIT_POLICY_H_
+#define MODCNCY_INCLUDE_MODCNCY_WAIT_POLICY_H_
 
 #include <emmintrin.h>
 
@@ -44,28 +44,34 @@
 namespace modcncy {
 
 // Supported policies.
-enum class WaitingPolicy {
+enum class WaitPolicy {
   kActiveWaiting = 0,   // Spins consuming CPU cycles.
   kPassiveWaiting = 1,  // Yields to other waiting threads.
   kPausedWaiting = 2,   // Tries to optimize spin-wait loop.
 };
 
 // =============================================================================
-inline void WaitingWithPolicy(
-    WaitingPolicy policy = WaitingPolicy::kPassiveWaiting) {
+// Provides support for a specific waiting policy.
+inline void cpu_no_op() {}
+inline void cpu_yield() { std::this_thread::yield(); }
+inline void cpu_pause() { _mm_pause(); }
+
+// =============================================================================
+// Provides support to change waiting policy during runtime.
+inline void WaitWithPolicy(WaitPolicy policy = WaitPolicy::kPassiveWaiting) {
   switch (policy) {
-    case WaitingPolicy::kActiveWaiting:
-      /*continue;*/
+    case WaitPolicy::kActiveWaiting:
+      cpu_no_op();
       break;
-    case WaitingPolicy::kPassiveWaiting:
-      std::this_thread::yield();
+    case WaitPolicy::kPassiveWaiting:
+      cpu_yield();
       break;
-    case WaitingPolicy::kPausedWaiting:
-      _mm_pause();
+    case WaitPolicy::kPausedWaiting:
+      cpu_pause();
       break;
   }
 }
 
 }  // namespace modcncy
 
-#endif  // MODCNCY_INCLUDE_MODCNCY_WAITING_POLICY_H_
+#endif  // MODCNCY_INCLUDE_MODCNCY_WAIT_POLICY_H_

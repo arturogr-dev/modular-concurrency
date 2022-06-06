@@ -22,8 +22,8 @@
 
 #include <atomic>
 
-#include "modcncy/barrier.h"
-#include "modcncy/global_expressions.h"
+#include "modcncy/include/modcncy/barrier.h"
+#include "modcncy/include/modcncy/global_expressions.h"
 
 namespace modcncy {
 namespace primitives {
@@ -32,7 +32,7 @@ class CentralStepCounterBarrier : public modcncy::Barrier {
  public:
   // A thread must wait here until all threads reach this point.
   void Wait(int num_threads,
-            WaitingPolicy policy = WaitingPolicy::kPassiveWaiting) override;
+            WaitPolicy policy = WaitPolicy::kPassiveWaiting) override;
 
  private:
   // Number of threads spinning at the barrier.
