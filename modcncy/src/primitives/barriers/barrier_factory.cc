@@ -2,16 +2,13 @@
 // Use of this source code is governed by the license found in the LICENSE file.
 // -----------------------------------------------------------------------------
 
-#include "modcncy/barrier.h"
-
-#include "primitives/barriers/central_sense_counter_barrier.h"
-#include "primitives/barriers/central_step_counter_barrier.h"
+#include "modcncy/src/primitives/barriers/barrier_factory.h"
 
 namespace modcncy {
 
 // =============================================================================
-// Factory function.
-modcncy::Barrier* NewBarrier(BarrierType type) {
+// Factory.
+modcncy::Barrier* Barrier::Create(BarrierType type) {
   switch (type) {
     case BarrierType::kCentralSenseCounterBarrier:
       return new primitives::CentralSenseCounterBarrier();

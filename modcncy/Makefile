@@ -24,17 +24,17 @@ CXX_CMPLR = g++
 CXX_FLAGS = -std=c++11 -Wall -Werror -Wextra -pedantic -O2
 
 BUILD_DIR = ./build/lib
-INC_PATHS = -I./src -I./include
+INC_PATHS = -I../ -I./include
 
 # Add your source code file names here and as a target.
 SRC_NAMES = central_sense_counter_barrier \
 	central_step_counter_barrier \
-	barrier
+	barrier_factory
 
 # Add the desired output object files here.
 OBJ_FILES = $(BUILD_DIR)/central_sense_counter_barrier.o \
 	$(BUILD_DIR)/central_step_counter_barrier.o \
-	$(BUILD_DIR)/barrier.o
+	$(BUILD_DIR)/barrier_factory.o
 
 .PHONY: $(BUILD_DIR) \
 	$(SRC_NAMES) \
@@ -69,7 +69,7 @@ central_step_counter_barrier: src/primitives/barriers/central_step_counter_barri
 	$(info $(__GREEN__)[ $(__PERCENT__)%]$(__SGR0__) Building $(__CYAN__)$@$(__SGR0__).)
 	@$(CXX_CMPLR) -c $< $(INC_PATHS) $(CXX_FLAGS) -o $(BUILD_DIR)/$@.o
 
-barrier: src/primitives/barriers/barrier.cc
+barrier_factory: src/primitives/barriers/barrier_factory.cc
 	$(eval __TARGET__=6)
 	$(info $(__GREEN__)[ $(__PERCENT__)%]$(__SGR0__) Building $(__CYAN__)$@$(__SGR0__).)
 	@$(CXX_CMPLR) -c $< $(INC_PATHS) $(CXX_FLAGS) -o $(BUILD_DIR)/$@.o

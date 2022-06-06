@@ -17,9 +17,12 @@ __SGR0__    = $(shell tput sgr0)
 CXX_CMPLR = g++
 CXX_FLAGS = -std=c++11 -Wall -Werror -Wextra -pedantic -O2
 
+MODCNCY_LIB_DIR = ..
+THIRD_PARTY_DIR = ../../third_party
+
 BUILD_DIR = ./build
-INC_PATHS = -I../include -I../../third_party/googletest/googletest/include
-LNK_PATHS = -L../build/lib -L../../third_party/googletest/build/lib
+INC_PATHS = -I$(MODCNCY_LIB_DIR)/include -I$(THIRD_PARTY_DIR)/googletest/googletest/include
+LNK_PATHS = -L$(MODCNCY_LIB_DIR)/build/lib -L$(THIRD_PARTY_DIR)/googletest/build/lib
 LNK_NAMES = -lmodcncy -lgtest -lgtest_main -lpthread
 
 # Use `flakiness` as an input from user to repeat the test multiple times.
