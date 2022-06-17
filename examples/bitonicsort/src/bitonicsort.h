@@ -63,10 +63,12 @@ void sort(Iterator begin, Iterator end,
 ///////////////////////  I M P L E M E N T A T I O N S  ////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
+namespace bitonicsort {
+namespace internal {
+
 // =============================================================================
 template <typename Iterator>
-void bitonicsort::internal::sequential_sort(Iterator begin, Iterator end,
-                                            int segment_size) {
+void sequential_sort(Iterator begin, Iterator end, int segment_size) {
   // Setup.
   const int data_size = end - begin;
   const int num_segments = data_size / segment_size;
@@ -97,5 +99,8 @@ void bitonicsort::internal::sequential_sort(Iterator begin, Iterator end,
     }
   }
 }
+
+}  // namespace internal
+}  // namespace bitonicsort
 
 #endif  // EXAMPLES_BITONICSORT_SRC_BITONICSORT_H_
