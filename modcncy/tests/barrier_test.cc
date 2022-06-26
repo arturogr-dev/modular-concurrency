@@ -6,8 +6,10 @@
 #include <modcncy/barrier.h>
 
 #include <algorithm>
+#include <chrono>  // NOLINT(build/c++11)
 #include <cstring>
 #include <memory>
+#include <mutex>  // NOLINT(build/c++11)
 #include <random>
 #include <thread>  // NOLINT(build/c++11)
 #include <vector>
@@ -30,6 +32,49 @@ TEST(BarrierCreationTest, NewUnsupportedBarrier) {
   // Barrier should not be instantiated.
   EXPECT_EQ(barrier, nullptr);
   // Teardown.
+  delete barrier;
+}
+
+// =============================================================================
+TEST(BarrierCreationTest, DefaultBarrierSanityTest) {
+  // Setup.
+  const int num_threads = std::thread::hardware_concurrency();
+  auto barrier = modcncy::Barrier::Create();
+  std::mutex mutex;
+  int counter = 0;  // Guarded by `mutex`.
+
+  // Launch `num_threads - 1` threads to hit the barrier and increase `counter`.
+  std::vector<std::thread> threads;
+  for (int i = 0; i < num_threads - 1; ++i) {
+    threads.emplace_back([&] {
+      barrier->Wait(num_threads);
+      std::unique_lock<std::mutex> lock(mutex);
+      ++counter;
+    });
+  }
+
+  // Make sure to test the barrier instead of the lock.
+  // Pause the main thread so the rest of the threads have a chance to reach the
+  // barrier and check that the counter is still 0 since no other thread should
+  // pass the barrier.
+  std::this_thread::sleep_for(std::chrono::seconds(1));
+  {
+    std::unique_lock<std::mutex> lock(mutex);
+    EXPECT_EQ(counter, 0);
+  }
+
+  // Main thread reaches the barrier, unblocking the rest of the threads.
+  {
+    barrier->Wait(num_threads);
+    std::unique_lock<std::mutex> lock(mutex);
+    ++counter;
+  }
+
+  // Teardown.
+  // Wait for the rest of the threads to complete.
+  // All threads should have incremented the counter by now.
+  for (auto& thread : threads) thread.join();
+  EXPECT_EQ(counter, num_threads);
   delete barrier;
 }
 
@@ -158,7 +203,7 @@ TEST_P(BarrierBehaviorTest, ReadAfterWritePartialSums) {
 }
 
 // =============================================================================
-TEST_P(BarrierBehaviorTest, ReusableBarrierBySortingPartialSegments) {
+TEST_P(BarrierBehaviorTest, ReusableAndAdaptableBarrierBySortingSegments) {
   // Setup.
   auto barrier = modcncy::Barrier::Create(GetParam().barrier_type);
   EXPECT_NE(barrier, nullptr);

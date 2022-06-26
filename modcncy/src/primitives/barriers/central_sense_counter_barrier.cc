@@ -8,7 +8,8 @@ namespace modcncy {
 namespace primitives {
 
 // =============================================================================
-void CentralSenseCounterBarrier::Wait(int num_threads, WaitPolicy policy) {
+void CentralSenseCounterBarrier::Wait(int num_threads,
+                                      modcncy::WaitPolicy policy) {
   const unsigned my_sense = sense_.load(std::memory_order_relaxed);
   if (spinning_threads_.fetch_add(1, std::memory_order_acq_rel) <
       num_threads - 1) {

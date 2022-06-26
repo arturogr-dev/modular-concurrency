@@ -4,11 +4,13 @@
 
 #include "modcncy/src/primitives/barriers/central_step_counter_barrier.h"
 
+#include <iostream>
 namespace modcncy {
 namespace primitives {
 
 // =============================================================================
-void CentralStepCounterBarrier::Wait(int num_threads, WaitPolicy policy) {
+void CentralStepCounterBarrier::Wait(int num_threads,
+                                     modcncy::WaitPolicy policy) {
   const unsigned current_step = step_.load(std::memory_order_relaxed);
   if (spinning_threads_.fetch_add(1, std::memory_order_acq_rel) <
       num_threads - 1) {
