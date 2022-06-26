@@ -58,7 +58,7 @@ inline void cpu_pause() { _mm_pause(); }
 
 // =============================================================================
 // Provides support to change waiting policy during runtime.
-inline void WaitWithPolicy(WaitPolicy policy = WaitPolicy::kPassiveWaiting) {
+inline void WaitWithPolicy(modcncy::WaitPolicy policy) {
   switch (policy) {
     case WaitPolicy::kActiveWaiting:
       cpu_no_op();

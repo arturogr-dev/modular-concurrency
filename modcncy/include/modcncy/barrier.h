@@ -36,11 +36,13 @@ class Barrier {
  public:
   // Factory.
   static modcncy::Barrier* Create(
-      BarrierType type = BarrierType::kCentralSenseCounterBarrier);
+      modcncy::BarrierType type =
+          modcncy::BarrierType::kCentralSenseCounterBarrier);
 
   virtual ~Barrier() {}
-  virtual void Wait(int num_threads,
-                    WaitPolicy policy = WaitPolicy::kPassiveWaiting) = 0;
+  virtual void Wait(
+      int num_threads,
+      modcncy::WaitPolicy policy = modcncy::WaitPolicy::kPassiveWaiting) = 0;
 };  // class Barrier
 
 }  // namespace modcncy

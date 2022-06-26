@@ -30,8 +30,7 @@ namespace primitives {
 class CentralSenseCounterBarrier : public modcncy::Barrier {
  public:
   // A thread must wait here until all threads reach this point.
-  void Wait(int num_threads,
-            WaitPolicy policy = WaitPolicy::kPassiveWaiting) override;
+  void Wait(int num_threads, modcncy::WaitPolicy policy) override;
 
  private:
   // Number of threads spinning at the barrier.

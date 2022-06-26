@@ -8,12 +8,12 @@ namespace modcncy {
 
 // =============================================================================
 // Factory.
-modcncy::Barrier* Barrier::Create(BarrierType type) {
+modcncy::Barrier* Barrier::Create(modcncy::BarrierType type) {
   switch (type) {
-    case BarrierType::kCentralSenseCounterBarrier:
-      return new primitives::CentralSenseCounterBarrier();
-    case BarrierType::kCentralStepCounterBarrier:
-      return new primitives::CentralStepCounterBarrier();
+    case modcncy::BarrierType::kCentralSenseCounterBarrier:
+      return new modcncy::primitives::CentralSenseCounterBarrier();
+    case modcncy::BarrierType::kCentralStepCounterBarrier:
+      return new modcncy::primitives::CentralStepCounterBarrier();
   }
   return nullptr;
 }
