@@ -2,7 +2,7 @@
 // Use of this source code is governed by the license found in the LICENSE file.
 // -----------------------------------------------------------------------------
 
-#include "examples/bitonicsort/src/bitonicsort.h"
+#include "examples/bitonicsort/include/bitonicsort.h"
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>

@@ -13,8 +13,8 @@
 //
 // -----------------------------------------------------------------------------
 
-#ifndef EXAMPLES_BITONICSORT_SRC_MERGE_H_
-#define EXAMPLES_BITONICSORT_SRC_MERGE_H_
+#ifndef EXAMPLES_BITONICSORT_INCLUDE_MERGE_H_
+#define EXAMPLES_BITONICSORT_INCLUDE_MERGE_H_
 
 #include <cstring>
 
@@ -245,4 +245,4 @@ void MergeDnFromDnDn(T* segment1, T* segment2, T* buffer, int size) {
 }  // namespace internal
 }  // namespace bitonicsort
 
-#endif  // EXAMPLES_BITONICSORT_SRC_MERGE_H_
+#endif  // EXAMPLES_BITONICSORT_INCLUDE_MERGE_H_
