@@ -57,7 +57,7 @@ inline void cpu_yield() { std::this_thread::yield(); }
 inline void cpu_pause() { _mm_pause(); }
 
 // =============================================================================
-// Provides support to change waiting policy during runtime.
+// Provides support to change waiting policy during run-time.
 inline void WaitWithPolicy(modcncy::WaitPolicy policy) {
   switch (policy) {
     case WaitPolicy::kActiveWaiting:
