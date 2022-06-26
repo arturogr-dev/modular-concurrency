@@ -16,13 +16,13 @@
 //
 // -----------------------------------------------------------------------------
 
-#ifndef EXAMPLES_BITONICSORT_SRC_BITONICSORT_H_
-#define EXAMPLES_BITONICSORT_SRC_BITONICSORT_H_
+#ifndef EXAMPLES_BITONICSORT_INCLUDE_BITONICSORT_H_
+#define EXAMPLES_BITONICSORT_INCLUDE_BITONICSORT_H_
 
 #include <algorithm>
 #include <vector>
 
-#include "examples/bitonicsort/src/merge.h"
+#include "examples/bitonicsort/include/merge.h"
 
 ////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////  D E F I N I T I O N S  ////////////////////////////
@@ -103,4 +103,4 @@ void sequential_sort(Iterator begin, Iterator end, int segment_size) {
 }  // namespace internal
 }  // namespace bitonicsort
 
-#endif  // EXAMPLES_BITONICSORT_SRC_BITONICSORT_H_
+#endif  // EXAMPLES_BITONICSORT_INCLUDE_BITONICSORT_H_
