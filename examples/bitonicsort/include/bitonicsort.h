@@ -19,7 +19,10 @@
 #ifndef EXAMPLES_BITONICSORT_INCLUDE_BITONICSORT_H_
 #define EXAMPLES_BITONICSORT_INCLUDE_BITONICSORT_H_
 
+#include <omp.h>
+
 #include <algorithm>
+#include <thread>  // NOLINT(build/c++11)
 #include <vector>
 
 #include "examples/bitonicsort/include/merge.h"
@@ -33,15 +36,19 @@ namespace bitonicsort {
 // Supported execution policies.
 enum class ExecutionPolicy {
   kSequential = 0,  // Sequential behavior, no parallelism.
+  kOmpBased = 1,    // Using OpenMP directives and implicit barrier.
 };
 
 namespace internal {
 
 static constexpr int kDefaultSegmentSize = 1024;  // Elements.
 
+// Functions to implement the proper execution policy.
 template <typename Iterator>
-void sequential_sort(Iterator begin, Iterator end,
-                     int segment_size = kDefaultSegmentSize);
+void sequential_sort(Iterator begin, Iterator end, int segment_size);
+template <typename Iterator>
+void parallel_ompbased_sort(Iterator begin, Iterator end, int segment_size,
+                            int num_threads);
 
 }  // namespace internal
 
@@ -49,10 +56,14 @@ void sequential_sort(Iterator begin, Iterator end,
 template <typename Iterator>
 void sort(Iterator begin, Iterator end,
           int segment_size = internal::kDefaultSegmentSize,
-          ExecutionPolicy policy = ExecutionPolicy::kSequential) {
+          ExecutionPolicy policy = ExecutionPolicy::kSequential,
+          int num_threads = std::thread::hardware_concurrency()) {
   switch (policy) {
     case ExecutionPolicy::kSequential:
       internal::sequential_sort(begin, end, segment_size);
+      break;
+    case ExecutionPolicy::kOmpBased:
+      internal::parallel_ompbased_sort(begin, end, segment_size, num_threads);
       break;
   }
 }
@@ -98,6 +109,49 @@ void sequential_sort(Iterator begin, Iterator end, int segment_size) {
       }
     }
   }
+}
+
+// =============================================================================
+template <typename Iterator>
+void parallel_ompbased_sort(Iterator begin, Iterator end, int segment_size,
+                            int num_threads) {
+  // Setup.
+  omp_set_dynamic(0);
+  omp_set_num_threads(num_threads);
+
+#pragma omp parallel
+  {
+    const int data_size = end - begin;
+    const int num_segments = data_size / segment_size;
+    std::vector<int> buffer(2 * segment_size);
+
+    // Sort each indiviual segment.
+#pragma omp for
+    for (int i = 0; i < data_size; i += segment_size)
+      std::sort(begin + i, begin + i + segment_size);
+
+    // Bitonic merging network.
+    for (int k = 2; k <= num_segments; k <<= 1) {
+      for (int j = k >> 1; j > 0; j >>= 1) {
+#pragma omp for
+        for (int i = 0; i < num_segments; ++i) {
+          const int ij = i ^ j;
+          if (i < ij) {
+            if ((i & k) == 0)
+              MergeUp(/*segment1=*/&*(begin + i * segment_size),
+                      /*segment2=*/&*(begin + ij * segment_size),
+                      /*buffer=*/buffer.data(),
+                      /*segment_size=*/segment_size);
+            else
+              MergeDn(/*segment1=*/&*(begin + i * segment_size),
+                      /*segment2=*/&*(begin + ij * segment_size),
+                      /*buffer=*/buffer.data(),
+                      /*segment_size=*/segment_size);
+          }
+        }
+      }
+    }
+  }  // pragma omp parallel
 }
 
 }  // namespace internal

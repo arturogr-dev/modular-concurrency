@@ -15,7 +15,7 @@ __SGR0__    = $(shell tput sgr0)
 # Build tests.
 
 CXX_CMPLR = g++
-CXX_FLAGS = -std=c++11 -Wall -Werror -Wextra -pedantic -O2
+CXX_FLAGS = -std=c++11 -Wall -Werror -Wextra -pedantic -O2 -fopenmp
 BUILD_DIR = ./build
 
 BITONICSORT_DIR = ../../..
@@ -37,7 +37,7 @@ LNK_PATHS_BENCH = -L$(MODCNCY_LIB_DIR)/build/lib -L$(THIRD_PARTY_DIR)/benchmark/
 LNK_NAMES_BENCH = -lmodcncy -lbenchmark -lbenchmark_main -lpthread
 
 # Use `repetitions` as an input from user to repeat the benchmark multiple times.
-# Usually use it with some benchmark filter (use `BENCH_ARGS`) to avoid an unnecessary big report.
+# Usually use it with some benchmark filter (use `benchmark_args`) to avoid an unnecessary big report.
 repetitions = no
 benchmark_flags = --benchmark_counters_tabular=true
 ifneq ($(repetitions), no)
