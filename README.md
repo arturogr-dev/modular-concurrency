@@ -25,6 +25,73 @@ Let's build a __state-of-the-art__ core software technologies hub for multicore 
 - [Google Benchmark](https://github.com/google/benchmark)
 - [Google Test](https://github.com/google/googletest)
 
+## Getting Started
+
+This describes a general process to install the `modcncy` library and its _submodule_ dependencies. For more specific instructions on each of the submodules, please visit their respective documentation.
+
+### Clone the repository and its submodules
+
+```bash
+$ git clone --recurse-submodules https://github.com/arturogr-dev/modular-concurrency.git
+```
+
+### Build the `Google Test` framework dependency
+
+```bash
+$ cd modular-concurrency/third_party/googletest
+$ mkdir build
+$ cd build
+$ cmake ..
+$ make
+```
+
+### Build the `Google Benchmark` library dependency
+
+```bash
+$ cd modular-concurrency/third_party/benchmark
+$ cmake -E make_directory "build"
+$ cmake -E chdir "build" cmake -DBENCHMARK_DOWNLOAD_DEPENDENCIES=on -DCMAKE_BUILD_TYPE=Release ../
+$ cmake --build "build" --config Release
+```
+
+If you want to check the build, you can run its tests:
+
+```bash
+$ cmake -E chdir "build" ctest --build-config Release
+```
+
+### Build the `modcncy` library
+
+```bash
+$ cd modular-concurrency/modcncy
+$ make
+```
+
+This builds the library in
+
+```
+/modular-concurrency
+  /modcncy
+    /build
+      /lib
+        /libmodcncy.a
+        ...
+```
+
+If you want to check the build, you can run its tests:
+
+```bash
+$ cd modular-concurrency/modcncy/tests
+$ make
+```
+
+and its benchmarks:
+
+```bash
+$ cd modular-concurrency/modcncy/benchmarks
+$ make
+```
+
 ## Tools
 
 - [Cpplint](https://github.com/cpplint/cpplint)
