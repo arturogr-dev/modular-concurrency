@@ -21,8 +21,6 @@
 #ifndef MODCNCY_INCLUDE_MODCNCY_BARRIER_H_
 #define MODCNCY_INCLUDE_MODCNCY_BARRIER_H_
 
-#include "modcncy/wait_policy.h"
-
 namespace modcncy {
 
 // Supported barriers.
@@ -34,15 +32,14 @@ enum class BarrierType {
 // Barrier base interface.
 class Barrier {
  public:
-  // Factory.
-  static modcncy::Barrier* Create(
-      modcncy::BarrierType type =
-          modcncy::BarrierType::kCentralSenseCounterBarrier);
+  // Factory method.
+  // Creates a new `Barrier` object.
+  static Barrier* Create(BarrierType type);
 
   virtual ~Barrier() {}
-  virtual void Wait(
-      int num_threads,
-      modcncy::WaitPolicy policy = modcncy::WaitPolicy::kPassiveWaiting) = 0;
+
+  // Blocks current thread until the last of `num_threads` reaches this point.
+  virtual void Wait(int num_threads) = 0;
 };  // class Barrier
 
 }  // namespace modcncy
