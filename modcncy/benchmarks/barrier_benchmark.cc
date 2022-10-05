@@ -5,9 +5,11 @@
 #include <benchmark/benchmark.h>
 #include <modcncy/barrier.h>
 
+#include <thread>
+
 // =============================================================================
 // Benchmark: Barrier Synchronization Primitive.
-template <modcncy::BarrierType barrier_type, modcncy::WaitPolicy wait_policy>
+template <modcncy::BarrierType barrier_type>
 static void BM_Barrier(benchmark::State& state) {  // NOLINT(runtime/references)
   // Setup.
   const auto& num_threads = state.threads();
@@ -27,29 +29,9 @@ static void BM_Barrier(benchmark::State& state) {  // NOLINT(runtime/references)
 }
 
 BENCHMARK_TEMPLATE(BM_Barrier,
-                   modcncy::BarrierType::kCentralSenseCounterBarrier,
-                   modcncy::WaitPolicy::kActiveWaiting)
+                   modcncy::BarrierType::kCentralSenseCounterBarrier)
     ->ThreadRange(1, std::thread::hardware_concurrency())
     ->UseRealTime();
-BENCHMARK_TEMPLATE(BM_Barrier,
-                   modcncy::BarrierType::kCentralSenseCounterBarrier,
-                   modcncy::WaitPolicy::kPassiveWaiting)
-    ->ThreadRange(1, std::thread::hardware_concurrency())
-    ->UseRealTime();
-BENCHMARK_TEMPLATE(BM_Barrier,
-                   modcncy::BarrierType::kCentralSenseCounterBarrier,
-                   modcncy::WaitPolicy::kPausedWaiting)
-    ->ThreadRange(1, std::thread::hardware_concurrency())
-    ->UseRealTime();
-BENCHMARK_TEMPLATE(BM_Barrier, modcncy::BarrierType::kCentralStepCounterBarrier,
-                   modcncy::WaitPolicy::kActiveWaiting)
-    ->ThreadRange(1, std::thread::hardware_concurrency())
-    ->UseRealTime();
-BENCHMARK_TEMPLATE(BM_Barrier, modcncy::BarrierType::kCentralStepCounterBarrier,
-                   modcncy::WaitPolicy::kPassiveWaiting)
-    ->ThreadRange(1, std::thread::hardware_concurrency())
-    ->UseRealTime();
-BENCHMARK_TEMPLATE(BM_Barrier, modcncy::BarrierType::kCentralStepCounterBarrier,
-                   modcncy::WaitPolicy::kPausedWaiting)
+BENCHMARK_TEMPLATE(BM_Barrier, modcncy::BarrierType::kCentralStepCounterBarrier)
     ->ThreadRange(1, std::thread::hardware_concurrency())
     ->UseRealTime();
