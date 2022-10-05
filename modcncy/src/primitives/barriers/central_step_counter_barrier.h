@@ -28,7 +28,7 @@
 namespace modcncy {
 namespace primitives {
 
-class CentralStepCounterBarrier : public modcncy::Barrier {
+class CentralStepCounterBarrier : public Barrier {
  public:
   // A thread must wait here until all threads reach this point.
   void Wait(int num_threads) override;
@@ -38,7 +38,7 @@ class CentralStepCounterBarrier : public modcncy::Barrier {
   std::atomic<int> spinning_threads_{0};
 
   // Padding to prevent false sharing.
-  char padding_[modcncy::kCacheLineSize - sizeof(std::atomic<int>)];
+  char padding_[kCacheLineSize - sizeof(std::atomic<int>)];
 
   // Number of barrier synchronizations completed so far.
   // The barrier is reusable since unsigned data type wraps around the overflow.

@@ -7,7 +7,7 @@
 namespace modcncy {
 
 // =============================================================================
-Barrier* Barrier::Create(modcncy::BarrierType type) {
+Barrier* Barrier::Create(BarrierType type) {
   switch (type) {
     case BarrierType::kCentralSenseCounterBarrier:
       return new primitives::CentralSenseCounterBarrier();

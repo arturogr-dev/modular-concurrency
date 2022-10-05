@@ -27,7 +27,7 @@
 namespace modcncy {
 namespace primitives {
 
-class CentralSenseCounterBarrier : public modcncy::Barrier {
+class CentralSenseCounterBarrier : public Barrier {
  public:
   // A thread must wait here until all threads reach this point.
   void Wait(int num_threads) override;
@@ -37,7 +37,7 @@ class CentralSenseCounterBarrier : public modcncy::Barrier {
   std::atomic<int> spinning_threads_{0};
 
   // Padding to prevent false sharing.
-  char padding_[modcncy::kCacheLineSize - sizeof(std::atomic<int>)];
+  char padding_[kCacheLineSize - sizeof(std::atomic<int>)];
 
   // Global sense flag.
   // The barrier is reusable since it flips between states.
