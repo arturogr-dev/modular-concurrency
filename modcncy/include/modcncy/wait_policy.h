@@ -43,34 +43,17 @@
 
 namespace modcncy {
 
-// Supported policies.
-enum class WaitPolicy {
-  kActiveWaiting = 0,   // Spins consuming CPU cycles.
-  kPassiveWaiting = 1,  // Yields to other waiting threads.
-  kPausedWaiting = 2,   // Tries to optimize spin-wait loop.
-};
-
 // =============================================================================
-// Provides support for a specific waiting policy.
+// Support for active waiting. Spins consuming CPU cycles.
 inline void cpu_no_op() {}
-inline void cpu_yield() { std::this_thread::yield(); }
-inline void cpu_pause() { _mm_pause(); }
 
 // =============================================================================
-// Provides support to change waiting policy during run-time.
-inline void WaitWithPolicy(modcncy::WaitPolicy policy) {
-  switch (policy) {
-    case WaitPolicy::kActiveWaiting:
-      cpu_no_op();
-      break;
-    case WaitPolicy::kPassiveWaiting:
-      cpu_yield();
-      break;
-    case WaitPolicy::kPausedWaiting:
-      cpu_pause();
-      break;
-  }
-}
+// Support for passive waiting. Hints to yield the CPU to other threads.
+inline void cpu_yield() { std::this_thread::yield(); }
+
+// =============================================================================
+// Support for paused waiting. Tries to optimize the spin-wait loop.
+inline void cpu_pause() { _mm_pause(); }
 
 }  // namespace modcncy
 
