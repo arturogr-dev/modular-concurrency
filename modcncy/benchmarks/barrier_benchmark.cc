@@ -5,7 +5,7 @@
 #include <benchmark/benchmark.h>
 #include <modcncy/barrier.h>
 
-#include <thread>
+#include <thread>  // NOLINT(build/c++11)
 
 // =============================================================================
 // Benchmark: Barrier Synchronization Primitive.
