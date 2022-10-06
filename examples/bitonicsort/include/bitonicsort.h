@@ -14,6 +14,9 @@
 //   + A sequential (not multithreaded) implementation, where a single execution
 //     thread will perform all the merging stages of the bitonic network.
 //
+//   + An OpenMP-based implementation. The concurrency model is delegated to the
+//     OpenMP runtime and its barrier synchronization primitive.
+//
 // -----------------------------------------------------------------------------
 
 #ifndef EXAMPLES_BITONICSORT_INCLUDE_BITONICSORT_H_
@@ -27,10 +30,6 @@
 
 #include "examples/bitonicsort/include/merge.h"
 
-////////////////////////////////////////////////////////////////////////////////
-///////////////////////////  D E F I N I T I O N S  ////////////////////////////
-////////////////////////////////////////////////////////////////////////////////
-
 namespace bitonicsort {
 
 // Supported execution policies.
@@ -41,29 +40,30 @@ enum class ExecutionPolicy {
 
 namespace internal {
 
-static constexpr int kDefaultSegmentSize = 1024;  // Elements.
+static constexpr int kDefaultSegmentSize = 256;  // Elements.
 
 // Functions to implement the proper execution policy.
 template <typename Iterator>
 void sequential_sort(Iterator begin, Iterator end, int segment_size);
 template <typename Iterator>
-void parallel_ompbased_sort(Iterator begin, Iterator end, int segment_size,
-                            int num_threads);
+void parallel_ompbased_sort(Iterator begin, Iterator end, int num_threads,
+                            int segment_size);
 
 }  // namespace internal
 
 // =============================================================================
+// Main function to execute the different policies.
 template <typename Iterator>
 void sort(Iterator begin, Iterator end,
-          int segment_size = internal::kDefaultSegmentSize,
           ExecutionPolicy policy = ExecutionPolicy::kSequential,
-          int num_threads = std::thread::hardware_concurrency()) {
+          int num_threads = std::thread::hardware_concurrency(),
+          int segment_size = internal::kDefaultSegmentSize) {
   switch (policy) {
     case ExecutionPolicy::kSequential:
       internal::sequential_sort(begin, end, segment_size);
       break;
     case ExecutionPolicy::kOmpBased:
-      internal::parallel_ompbased_sort(begin, end, segment_size, num_threads);
+      internal::parallel_ompbased_sort(begin, end, num_threads, segment_size);
       break;
   }
 }
@@ -113,8 +113,8 @@ void sequential_sort(Iterator begin, Iterator end, int segment_size) {
 
 // =============================================================================
 template <typename Iterator>
-void parallel_ompbased_sort(Iterator begin, Iterator end, int segment_size,
-                            int num_threads) {
+void parallel_ompbased_sort(Iterator begin, Iterator end, int num_threads,
+                            int segment_size) {
   // Setup.
   omp_set_dynamic(0);
   omp_set_num_threads(num_threads);

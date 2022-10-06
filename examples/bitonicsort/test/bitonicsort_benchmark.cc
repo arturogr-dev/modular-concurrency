@@ -12,19 +12,13 @@
 
 #include "examples/bitonicsort/include/bitonicsort.h"
 
-// Experiment with data sizes that could potentially fit in L2, L3 and DRAM.
-static constexpr int kDataSizeBegin = 15;  //  128 kB (Using 4 bytes ints).
-static constexpr int kDataSizeEnd = 21;    // 8192 kB (Using 4 bytes ints).
-
-// Experiment with segment sizes that could potentially fit only in L1.
-static constexpr int kSegmentSizeBegin = 8;  // 1 kB (Using 4 bytes ints).
-static constexpr int kSegmentSizeEnd = 10;   // 4 kB (Using 4 bytes ints).
-
-// Experiment with the maximum available cpu cores.
-static const int num_cpus = std::thread::hardware_concurrency();
+// Experiment sorting data sizes that could potentially fit in L2, L3 and DRAM.
+static constexpr int kDataSizeBegin = 15;  //   128 kB (Assuming 4 bytes ints).
+static constexpr int kDataSizeEnd = 23;    // 32768 kB (Assuming 4 bytes ints).
+static constexpr int kDataSizeStep = 1;    // Input size incremental step.
 
 // =============================================================================
-// Computes the logarithm base 2 of a power of 2.
+// Helper to compute the logarithm base 2 of a power of 2.
 static inline int log2(int x) { return __builtin_ctz(x); }
 
 // =============================================================================
@@ -36,31 +30,15 @@ static bool IsSorted(const std::vector<int>& data) {
 }
 
 // =============================================================================
-// Benchmark arguments for sequential bitonicsort implementation.
-static void SequentialArgs(benchmark::internal::Benchmark* b) {
-  for (int i = kDataSizeBegin; i <= kDataSizeEnd; i += 2)
-    for (int j = kSegmentSizeBegin; j <= kSegmentSizeEnd; ++j)
-      b->Args({/*data_size=*/i, /*segment_size=*/j, /*threads=*/1});
-}
-
-// =============================================================================
-// Benchmark arguments for parallel bitonicsort implementation.
-static void ParallelArgs(benchmark::internal::Benchmark* b) {
-  for (int i = kDataSizeBegin; i <= kDataSizeEnd; i += 2)
-    for (int j = kSegmentSizeBegin; j <= kSegmentSizeEnd; ++j)
-      for (int threads = 1; threads <= num_cpus; threads <<= 1)
-        b->Args({/*data_size=*/i, /*segment_size=*/j, threads});
-}
-
-// =============================================================================
 // Benchmark: Bitonicsort by Segments.
 template <bitonicsort::ExecutionPolicy policy>
-static void BM_SortVectorOfInts(
-    benchmark::State& state) {  // NOLINT(runtime/references)
+static void BM_Ints(benchmark::State& state) {  // NOLINT(runtime/references)
   // Setup.
-  const int data_size = 1 << state.range(0);
-  const int segment_size = 1 << state.range(1);
-  const int threads = state.range(2);
+  const int data_size = 1 << state.range(0);  // Ensures a power of 2.
+  const int segment_size = bitonicsort::internal::kDefaultSegmentSize;
+  const int threads = (policy != bitonicsort::ExecutionPolicy::kSequential)
+                          ? std::thread::hardware_concurrency()
+                          : 1;
   std::vector<int> data;
   data.reserve(data_size);
   for (int i = 1; i <= data_size; ++i) data.push_back(i);
@@ -71,7 +49,7 @@ static void BM_SortVectorOfInts(
 
   // Benchmark.
   for (auto _ : state) {
-    bitonicsort::sort(data.begin(), data.end(), segment_size, policy, threads);
+    bitonicsort::sort(data.begin(), data.end(), policy, threads, segment_size);
 
     // Prepare for next iteration.
     state.PauseTiming();
@@ -91,19 +69,17 @@ static void BM_SortVectorOfInts(
       std::to_string(data_in_bytes / 1024) + " kB data | " +
       std::to_string(segment_in_bytes / 1024) + " kB segment | " +
       std::to_string(num_segments) + " segments | " +
-      std::to_string(bitonic_stages) + " bitonic stages";
+      std::to_string(bitonic_stages) + " bitonic stages | " +
+      std::to_string(threads) + " threads ";
   state.SetLabel(label);
   state.SetBytesProcessed(state.iterations() * data_in_bytes);
 }
 
-BENCHMARK_TEMPLATE(BM_SortVectorOfInts,
-                   bitonicsort::ExecutionPolicy::kSequential)
-    ->Apply(SequentialArgs)
-    ->ArgNames({"data_size", "segment_size", "threads"})
+BENCHMARK_TEMPLATE(BM_Ints, bitonicsort::ExecutionPolicy::kSequential)
+    ->DenseRange(kDataSizeBegin, kDataSizeEnd, kDataSizeStep)
     ->Unit(benchmark::kMillisecond)
     ->UseRealTime();
-BENCHMARK_TEMPLATE(BM_SortVectorOfInts, bitonicsort::ExecutionPolicy::kOmpBased)
-    ->Apply(ParallelArgs)
-    ->ArgNames({"data_size", "segment_size", "threads"})
+BENCHMARK_TEMPLATE(BM_Ints, bitonicsort::ExecutionPolicy::kOmpBased)
+    ->DenseRange(kDataSizeBegin, kDataSizeEnd, kDataSizeStep)
     ->Unit(benchmark::kMillisecond)
     ->UseRealTime();

@@ -18,17 +18,9 @@
 
 #include <cstring>
 
-////////////////////////////////////////////////////////////////////////////////
-///////////////////////////  D E F I N I T I O N S  ////////////////////////////
-////////////////////////////////////////////////////////////////////////////////
-
 namespace bitonicsort {
 
 namespace internal {
-
-// Scatter data back into original arrays.
-template <typename T>
-static void Scatter(T* buffer, T* segment1, T* segment2, int size);
 
 // All possible configurations to merge pair of segments of the same size,
 // depending on the sorting direction of the given segments.
@@ -48,6 +40,10 @@ template <typename T>
 static void MergeDnFromDnUp(T* segment1, T* segment2, T* buffer, int size);
 template <typename T>
 static void MergeDnFromDnDn(T* segment1, T* segment2, T* buffer, int size);
+
+// Scatter data back into original arrays.
+template <typename T>
+static void Scatter(T* buffer, T* segment1, T* segment2, int size);
 
 }  // namespace internal
 
@@ -89,14 +85,6 @@ void MergeDn(T* segment1, T* segment2, T* buffer, int size) {
 
 namespace bitonicsort {
 namespace internal {
-
-// =============================================================================
-template <typename T>
-void Scatter(T* buffer, T* segment1, T* segment2, int size) {
-  const int bytes = size * sizeof(int);
-  std::memcpy(/*dst=*/segment1, /*src=*/buffer, /*cnt=*/bytes);
-  std::memcpy(/*dst=*/segment2, /*src=*/buffer + size, /*cnt=*/bytes);
-}
 
 // =============================================================================
 template <typename T>
@@ -240,6 +228,14 @@ void MergeDnFromDnDn(T* segment1, T* segment2, T* buffer, int size) {
 
   // Scatter back into original arrays.
   Scatter(buffer, segment1, segment2, size);
+}
+
+// =============================================================================
+template <typename T>
+void Scatter(T* buffer, T* segment1, T* segment2, int size) {
+  const int bytes = size * sizeof(int);
+  std::memcpy(/*dst=*/segment1, /*src=*/buffer, /*cnt=*/bytes);
+  std::memcpy(/*dst=*/segment2, /*src=*/buffer + size, /*cnt=*/bytes);
 }
 
 }  // namespace internal
