@@ -26,3 +26,12 @@ TEST(BitonicsortTest, ParallelOmpBasedSortSmallVectorOfInts) {
                     /*segment_size=*/2);
   EXPECT_THAT(unsorted, testing::ElementsAre(1, 2, 3, 4, 5, 6, 7, 8));
 }
+
+// =============================================================================
+TEST(BitonicsortTest, ParallelNonBlockingSortSmallVectorOfInts) {
+  std::vector<int> unsorted = {5, 7, 1, 4, 8, 2, 3, 6};
+  bitonicsort::sort(unsorted.begin(), unsorted.end(),
+                    bitonicsort::ExecutionPolicy::kNonBlocking,
+                    /*num_threads=*/2, /*segment_size=*/2);
+  EXPECT_THAT(unsorted, testing::ElementsAre(1, 2, 3, 4, 5, 6, 7, 8));
+}
