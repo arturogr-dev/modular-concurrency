@@ -83,3 +83,7 @@ BENCHMARK_TEMPLATE(BM_Ints, bitonicsort::ExecutionPolicy::kOmpBased)
     ->DenseRange(kDataSizeBegin, kDataSizeEnd, kDataSizeStep)
     ->Unit(benchmark::kMillisecond)
     ->UseRealTime();
+BENCHMARK_TEMPLATE(BM_Ints, bitonicsort::ExecutionPolicy::kNonBlocking)
+    ->DenseRange(kDataSizeBegin, kDataSizeEnd, kDataSizeStep)
+    ->Unit(benchmark::kMillisecond)
+    ->UseRealTime();
