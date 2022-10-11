@@ -32,8 +32,7 @@ enum class BarrierType {
 // Barrier base interface.
 class Barrier {
  public:
-  // Factory method.
-  // Creates a new `Barrier` object.
+  // Factory method. Creates a new `Barrier` object.
   static Barrier* Create(BarrierType type);
 
   virtual ~Barrier() {}

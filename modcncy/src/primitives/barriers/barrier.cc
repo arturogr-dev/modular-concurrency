@@ -2,11 +2,15 @@
 // Use of this source code is governed by the license found in the LICENSE file.
 // -----------------------------------------------------------------------------
 
-#include "modcncy/src/primitives/barriers/barrier_factory.h"
+#include "modcncy/include/modcncy/barrier.h"
+
+#include "modcncy/src/primitives/barriers/central_sense_counter_barrier.h"
+#include "modcncy/src/primitives/barriers/central_step_counter_barrier.h"
 
 namespace modcncy {
 
 // =============================================================================
+// Factory method. Creates a new `Barrier` object based on its type.
 Barrier* Barrier::Create(BarrierType type) {
   switch (type) {
     case BarrierType::kCentralSenseCounterBarrier:
