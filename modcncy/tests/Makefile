@@ -32,7 +32,8 @@ ifneq ($(flakiness), no)
 endif
 
 # Add your tests here with the prefix `run_` and as a target.
-TESTS = run_barrier_test
+TESTS = run_barrier_test \
+				run_flags_test
 
 .PHONY: all \
 	setup \
@@ -59,6 +60,13 @@ barrier_test: barrier_test.cc
 	$(info $(__CYAN__)-- Compiling $<$(__SGR0__))
 	$(CXX_CMPLR) $< $(INC_PATHS) $(LNK_PATHS) $(LNK_NAMES) $(CXX_FLAGS) -o $(BUILD_DIR)/run_$@
 run_barrier_test: barrier_test
+	$(info $(__CYAN__)-- Running $@$(__SGR0__))
+	$(BUILD_DIR)/$@ $(gtest_flags)
+
+flags_test: flags_test.cc
+	$(info $(__CYAN__)-- Compiling $<$(__SGR0__))
+	$(CXX_CMPLR) $< $(INC_PATHS) $(LNK_PATHS) $(LNK_NAMES) $(CXX_FLAGS) -o $(BUILD_DIR)/run_$@
+run_flags_test: flags_test
 	$(info $(__CYAN__)-- Running $@$(__SGR0__))
 	$(BUILD_DIR)/$@ $(gtest_flags)
 
