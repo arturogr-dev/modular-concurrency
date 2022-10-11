@@ -35,3 +35,12 @@ TEST(BitonicsortTest, ParallelNonBlockingSortSmallVectorOfInts) {
                     /*num_threads=*/2, /*segment_size=*/2);
   EXPECT_THAT(unsorted, testing::ElementsAre(1, 2, 3, 4, 5, 6, 7, 8));
 }
+
+// =============================================================================
+TEST(BitonicsortTest, ParallelGnuMultiwayMergesortSmallVectorOfInts) {
+  std::vector<int> unsorted = {5, 7, 1, 4, 8, 2, 3, 6};
+  bitonicsort::sort(unsorted.begin(), unsorted.end(),
+                    bitonicsort::ExecutionPolicy::kGnuMergesort,
+                    /*num_threads=*/2);
+  EXPECT_THAT(unsorted, testing::ElementsAre(1, 2, 3, 4, 5, 6, 7, 8));
+}

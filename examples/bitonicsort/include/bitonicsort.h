@@ -38,7 +38,8 @@
 
 #include <algorithm>
 #include <atomic>
-#include <thread>  // NOLINT(build/c++11)
+#include <parallel/algorithm>  // NOLINT(build/include_order)
+#include <thread>              // NOLINT(build/c++11)
 #include <vector>
 
 #include "examples/bitonicsort/include/merge.h"
@@ -47,9 +48,10 @@ namespace bitonicsort {
 
 // Supported execution policies.
 enum class ExecutionPolicy {
-  kSequential = 0,   // Sequential behavior, no parallelism.
-  kOmpBased = 1,     // Using OpenMP directives and implicit barrier.
-  kNonBlocking = 2,  // Exploiting the memory access pattern of the algorithm.
+  kSequential = 0,    // Sequential behavior, no parallelism.
+  kOmpBased = 1,      // Using OpenMP directives and implicit barrier.
+  kNonBlocking = 2,   // Exploiting the memory access pattern of the algorithm.
+  kGnuMergesort = 3,  // To compare against the std multiway mergesort impl.
 };
 
 namespace internal {
@@ -86,6 +88,10 @@ void sort(Iterator begin, Iterator end,
     case ExecutionPolicy::kNonBlocking:
       internal::parallel_nonblocking_sort(begin, end, num_threads,
                                           segment_size);
+      break;
+    case ExecutionPolicy::kGnuMergesort:
+      __gnu_parallel::sort(begin, end,
+                           __gnu_parallel::multiway_mergesort_tag(num_threads));
       break;
   }
 }
