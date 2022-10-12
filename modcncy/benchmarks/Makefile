@@ -23,7 +23,7 @@ THIRD_PARTY_DIR = ../../third_party
 BUILD_DIR = ./build
 INC_PATHS = -I$(MODCNCY_LIB_DIR)/include -I$(THIRD_PARTY_DIR)/benchmark/include -I$(THIRD_PARTY_DIR)/benchmark/build/include
 LNK_PATHS = -L$(MODCNCY_LIB_DIR)/build/lib -L$(THIRD_PARTY_DIR)/benchmark/build/src
-LNK_NAMES = -lmodcncy -lbenchmark -lbenchmark_main -lpthread
+LNK_NAMES = -lmodcncy -lbenchmark -lpthread
 
 # Use `repetitions` as an input from user to repeat the benchmark multiple times.
 # Usually use it with some benchmark filter (use `BENCH_ARGS`) to avoid an unnecessary big report.

@@ -34,7 +34,7 @@ endif
 
 INC_PATHS_BENCH = -I$(BITONICSORT_DIR) -I$(MODCNCY_LIB_DIR)/include -I$(THIRD_PARTY_DIR)/benchmark/include -I$(THIRD_PARTY_DIR)/benchmark/build/include
 LNK_PATHS_BENCH = -L$(MODCNCY_LIB_DIR)/build/lib -L$(THIRD_PARTY_DIR)/benchmark/build/src
-LNK_NAMES_BENCH = -lmodcncy -lbenchmark -lbenchmark_main -lpthread
+LNK_NAMES_BENCH = -lmodcncy -lbenchmark -lpthread
 
 # Use `repetitions` as an input from user to repeat the benchmark multiple times.
 # Usually use it with some benchmark filter (use `benchmark_args`) to avoid an unnecessary big report.

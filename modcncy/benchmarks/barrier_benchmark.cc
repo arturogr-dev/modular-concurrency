@@ -35,3 +35,5 @@ BENCHMARK_TEMPLATE(BM_Barrier,
 BENCHMARK_TEMPLATE(BM_Barrier, modcncy::BarrierType::kCentralStepCounterBarrier)
     ->ThreadRange(1, std::thread::hardware_concurrency())
     ->UseRealTime();
+
+BENCHMARK_MAIN();
