@@ -12,7 +12,6 @@
 #include <string>
 
 namespace modcncy {
-namespace internal {
 
 // =============================================================================
 // Returns the name of the environment variable corresponding to the given flag.
@@ -95,5 +94,4 @@ bool ParseIntFlag(const char* str, const char* flag, int* value) {
   return ParseInt(std::string("Value of flag --") + flag, value_str, value);
 }
 
-}  // namespace internal
 }  // namespace modcncy

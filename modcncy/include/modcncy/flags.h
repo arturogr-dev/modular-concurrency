@@ -17,10 +17,9 @@
 
 // Macros to define flags.
 #define MODCNCY_DEFINE_int(name, default_value) \
-  int FLAG(name) = modcncy::internal::IntFromEnv(#name, default_value)
+  int FLAG(name) = modcncy::IntFromEnv(#name, default_value)
 
 namespace modcncy {
-namespace internal {
 
 // Parses an `int` from the env variable corresponding to the given flag.
 // If the variable exists, returns `ParseInt()` value.
@@ -32,7 +31,6 @@ int IntFromEnv(const char* flag, int default_value);
 // On failure, returns false without changin `*value`.
 bool ParseIntFlag(const char* str, const char* flag, int* value);
 
-}  // namespace internal
 }  // namespace modcncy
 
 #endif  // MODCNCY_INCLUDE_MODCNCY_FLAGS_H_
