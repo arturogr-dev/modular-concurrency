@@ -15,7 +15,7 @@ __SGR0__    = $(shell tput sgr0)
 # Build tests.
 
 CXX_CMPLR = g++
-CXX_FLAGS = -std=c++11 -Wall -Werror -Wextra -pedantic -O2 -fopenmp
+CXX_FLAGS = -std=c++11 -Wall -Werror -Wextra -pedantic -O2 -fopenmp -march=native -mtune=native -flto -fuse-linker-plugin
 BUILD_DIR = ./build
 
 BITONICSORT_DIR = ../../..

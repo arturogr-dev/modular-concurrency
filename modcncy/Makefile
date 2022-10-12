@@ -21,7 +21,7 @@ __PERCENT__ = $(shell echo "scale=0; $(__TARGET__)*100/$(__TARGETS__)" | bc)
 # Build the library.
 
 CXX_CMPLR = g++
-CXX_FLAGS = -std=c++11 -Wall -Werror -Wextra -pedantic -O2
+CXX_FLAGS = -std=c++11 -Wall -Werror -Wextra -pedantic -O2 -march=native -mtune=native -flto -fuse-linker-plugin
 
 BUILD_DIR = ./build/lib
 INC_PATHS = -I../ -I./include

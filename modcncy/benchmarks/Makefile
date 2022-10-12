@@ -15,7 +15,7 @@ __SGR0__    = $(shell tput sgr0)
 # Build tests.
 
 CXX_CMPLR = g++
-CXX_FLAGS = -std=c++11 -Wall -Werror -Wextra -pedantic -O2
+CXX_FLAGS = -std=c++11 -Wall -Werror -Wextra -pedantic -O2 -march=native -mtune=native -flto -fuse-linker-plugin
 
 MODCNCY_LIB_DIR = ..
 THIRD_PARTY_DIR = ../../third_party
