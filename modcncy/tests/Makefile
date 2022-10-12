@@ -33,7 +33,7 @@ endif
 
 # Add your tests here with the prefix `run_` and as a target.
 TESTS = run_barrier_test \
-				run_flags_test
+	run_flags_test
 
 .PHONY: all \
 	setup \
