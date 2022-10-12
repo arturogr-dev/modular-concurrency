@@ -13,7 +13,7 @@
 #define FLAG(name) FLAGS_##name
 
 // Macros to declare flags.
-#define MODCNCY_DECLARE_int(name) extern int FLAG(NAME)
+#define MODCNCY_DECLARE_int(name) extern int FLAG(name)
 
 // Macros to define flags.
 #define MODCNCY_DEFINE_int(name, default_value) \
