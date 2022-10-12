@@ -28,7 +28,7 @@ static std::string FlagToEnvVar(const char* flag) {
 // Parses a `string` as a command line flag.
 // The string should have the format "--flag=value".
 // Returns the value of the flag or `nullptr` if the parsing fails.
-const char* ParseFlagValue(const char* str, const char* flag) {
+static const char* ParseFlagValue(const char* str, const char* flag) {
   // `str` and `flag` must not be nullptr.
   if (str == nullptr || flag == nullptr) return nullptr;
   // The flag must start with "--".
@@ -47,7 +47,7 @@ const char* ParseFlagValue(const char* str, const char* flag) {
 // Parses `str` to an `int` data type.
 // If successful, writes the result to `*value` and returns true.
 // Otherwise, leaves `*value` unchanged and returns false.
-bool ParseInt(const std::string& src_text, const char* str, int* value) {
+static bool ParseInt(const std::string& src_text, const char* str, int* value) {
   // Parse the environment variable as a decimal integer.
   char* end = nullptr;
   const long long_value = strtol(str, &end, 10);  // NOLINT(runtime/int)
