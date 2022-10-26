@@ -124,15 +124,15 @@ void sequential_sort(Iterator begin, Iterator end, int segment_size) {
         const int ij = i ^ j;
         if (i < ij) {
           if ((i & k) == 0)
-            MergeUp(/*segment1=*/&*(begin + i * segment_size),
-                    /*segment2=*/&*(begin + ij * segment_size),
-                    /*buffer=*/buffer.data(),
-                    /*segment_size=*/segment_size);
+            merge::MergeUp(/*segment1=*/&*(begin + i * segment_size),
+                           /*segment2=*/&*(begin + ij * segment_size),
+                           /*buffer=*/buffer.data(),
+                           /*segment_size=*/segment_size);
           else
-            MergeDn(/*segment1=*/&*(begin + i * segment_size),
-                    /*segment2=*/&*(begin + ij * segment_size),
-                    /*buffer=*/buffer.data(),
-                    /*segment_size=*/segment_size);
+            merge::MergeDn(/*segment1=*/&*(begin + i * segment_size),
+                           /*segment2=*/&*(begin + ij * segment_size),
+                           /*buffer=*/buffer.data(),
+                           /*segment_size=*/segment_size);
         }
       }
     }
@@ -166,15 +166,15 @@ void parallel_ompbased_sort(Iterator begin, Iterator end, int num_threads,
           const int ij = i ^ j;
           if (i < ij) {
             if ((i & k) == 0)
-              MergeUp(/*segment1=*/&*(begin + i * segment_size),
-                      /*segment2=*/&*(begin + ij * segment_size),
-                      /*buffer=*/buffer.data(),
-                      /*segment_size=*/segment_size);
+              merge::MergeUp(/*segment1=*/&*(begin + i * segment_size),
+                             /*segment2=*/&*(begin + ij * segment_size),
+                             /*buffer=*/buffer.data(),
+                             /*segment_size=*/segment_size);
             else
-              MergeDn(/*segment1=*/&*(begin + i * segment_size),
-                      /*segment2=*/&*(begin + ij * segment_size),
-                      /*buffer=*/buffer.data(),
-                      /*segment_size=*/segment_size);
+              merge::MergeDn(/*segment1=*/&*(begin + i * segment_size),
+                             /*segment2=*/&*(begin + ij * segment_size),
+                             /*buffer=*/buffer.data(),
+                             /*segment_size=*/segment_size);
           }
         }
       }
@@ -234,15 +234,15 @@ void parallel_nonblocking_sort(Iterator begin, Iterator end, int num_threads,
               modcncy::cpu_yield();
 
             if ((i & k) == 0)
-              MergeUp(/*segment1=*/&*(begin + segment1_index),
-                      /*segment2=*/&*(begin + segment2_index),
-                      /*buffer=*/buffer.data(),
-                      /*segment_size=*/segment_size);
+              merge::MergeUp(/*segment1=*/&*(begin + segment1_index),
+                             /*segment2=*/&*(begin + segment2_index),
+                             /*buffer=*/buffer.data(),
+                             /*segment_size=*/segment_size);
             else
-              MergeDn(/*segment1=*/&*(begin + segment1_index),
-                      /*segment2=*/&*(begin + segment2_index),
-                      /*buffer=*/buffer.data(),
-                      /*segment_size=*/segment_size);
+              merge::MergeDn(/*segment1=*/&*(begin + segment1_index),
+                             /*segment2=*/&*(begin + segment2_index),
+                             /*buffer=*/buffer.data(),
+                             /*segment_size=*/segment_size);
 
             // Mark segments "ready" for next stage.
             (*segment_stage_count)[segment1_id].fetch_add(1);
