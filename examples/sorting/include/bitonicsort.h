@@ -30,8 +30,8 @@
 //
 // -----------------------------------------------------------------------------
 
-#ifndef EXAMPLES_BITONICSORT_INCLUDE_BITONICSORT_H_
-#define EXAMPLES_BITONICSORT_INCLUDE_BITONICSORT_H_
+#ifndef EXAMPLES_SORTING_INCLUDE_BITONICSORT_H_
+#define EXAMPLES_SORTING_INCLUDE_BITONICSORT_H_
 
 #include <modcncy/wait_policy.h>
 #include <omp.h>
@@ -42,7 +42,7 @@
 #include <thread>              // NOLINT(build/c++11)
 #include <vector>
 
-#include "examples/bitonicsort/include/merge.h"
+#include "examples/sorting/include/merge.h"
 
 namespace bitonicsort {
 
@@ -278,4 +278,4 @@ void parallel_nonblocking_sort(Iterator begin, Iterator end, int num_threads,
 }  // namespace internal
 }  // namespace bitonicsort
 
-#endif  // EXAMPLES_BITONICSORT_INCLUDE_BITONICSORT_H_
+#endif  // EXAMPLES_SORTING_INCLUDE_BITONICSORT_H_

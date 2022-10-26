@@ -13,8 +13,8 @@
 //
 // -----------------------------------------------------------------------------
 
-#ifndef EXAMPLES_BITONICSORT_INCLUDE_MERGE_H_
-#define EXAMPLES_BITONICSORT_INCLUDE_MERGE_H_
+#ifndef EXAMPLES_SORTING_INCLUDE_MERGE_H_
+#define EXAMPLES_SORTING_INCLUDE_MERGE_H_
 
 #include <cstring>
 
@@ -241,4 +241,4 @@ void Scatter(T* buffer, T* segment1, T* segment2, int size) {
 }  // namespace internal
 }  // namespace bitonicsort
 
-#endif  // EXAMPLES_BITONICSORT_INCLUDE_MERGE_H_
+#endif  // EXAMPLES_SORTING_INCLUDE_MERGE_H_

@@ -52,34 +52,34 @@ endif
 	benchmark \
 	teardown
 
-all: setup clean $(BUILD_DIR) run_bitonicsort_test run_bitonicsort_benchmark teardown
-test: setup clean $(BUILD_DIR) run_bitonicsort_test teardown
-benchmark: setup clean $(BUILD_DIR) run_bitonicsort_benchmark teardown
+all: setup clean $(BUILD_DIR) run_sorting_test run_sorting_benchmark teardown
+test: setup clean $(BUILD_DIR) run_sorting_test teardown
+benchmark: setup clean $(BUILD_DIR) run_sorting_benchmark teardown
 
 setup:
-	$(info $(__MAGENTA__)-- The Modular-Concurrency Project: Examples, Bitonicsort.$(__SGR0__))
+	$(info $(__MAGENTA__)-- The Modular-Concurrency Project: Examples - Sorting.$(__SGR0__))
 
 clean:
-	$(info $(__CYAN__)-- Cleaning previous build bitonicsort.$(__SGR0__))
+	$(info $(__CYAN__)-- Cleaning previous build sorting.$(__SGR0__))
 	@rm -rf ./build || true
 
 $(BUILD_DIR):
-	$(info $(__CYAN__)-- Creating build bitonicsort directory.$(__SGR0__))
+	$(info $(__CYAN__)-- Creating build sorting directory.$(__SGR0__))
 	@mkdir -p $(BUILD_DIR)
 
-bitonicsort_test: bitonicsort_test.cc
+sorting_test: sorting_test.cc
 	$(info $(__CYAN__)-- Compiling $<$(__SGR0__))
 	$(CXX_CMPLR) $< $(INC_PATHS_TEST) $(LNK_PATHS_TEST) $(LNK_NAMES_TEST) $(CXX_FLAGS) -o $(BUILD_DIR)/run_$@
-run_bitonicsort_test: bitonicsort_test
+run_sorting_test: sorting_test
 	$(info $(__CYAN__)-- Running $@$(__SGR0__))
 	$(BUILD_DIR)/$@ $(gtest_flags)
 
-bitonicsort_benchmark: bitonicsort_benchmark.cc
+sorting_benchmark: sorting_benchmark.cc
 	$(info $(__CYAN__)-- Compiling $<$(__SGR0__))
 	$(CXX_CMPLR) $< $(INC_PATHS_BENCH) $(LNK_PATHS_BENCH) $(LNK_NAMES_BENCH) $(CXX_FLAGS) -o $(BUILD_DIR)/run_$@
-run_bitonicsort_benchmark: bitonicsort_benchmark
+run_sorting_benchmark: sorting_benchmark
 	$(info $(__CYAN__)-- Running $@$(__SGR0__))
 	$(BUILD_DIR)/$@ $(benchmark_flags) $(benchmark_args)
 
 teardown:
-	$(info $(__MAGENTA__)-- Bitonicsort finished.$(__SGR0__))
+	$(info $(__MAGENTA__)-- Sorting finished.$(__SGR0__))

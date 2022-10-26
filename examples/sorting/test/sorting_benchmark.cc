@@ -10,7 +10,7 @@
 #include <string>
 #include <vector>
 
-#include "examples/bitonicsort/include/bitonicsort.h"
+#include "examples/sorting/include/bitonicsort.h"
 
 // Experiment sorting data sizes that could potentially fit in L2, L3 and DRAM.
 static constexpr int kDataSizeBegin = 15;  //   128 kB (Assuming 4 bytes ints).
