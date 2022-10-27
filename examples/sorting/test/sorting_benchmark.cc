@@ -31,7 +31,7 @@ static bool IsSorted(const std::vector<int>& data) {
 }
 
 // =============================================================================
-// Benchmark: Bitonicsort by Segments.
+// Benchmark: Sorting 32-bit integers.
 template <sorting::Type type>
 static void BM_Sort32BitInts(benchmark::State& state) {  // NOLINT
   // Setup.
