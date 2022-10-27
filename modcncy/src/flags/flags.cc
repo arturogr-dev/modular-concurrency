@@ -16,7 +16,7 @@ namespace modcncy {
 // =============================================================================
 // Returns the name of the environment variable corresponding to the given flag.
 // For example, `FlagToEnvVar("foo")` will return `MODCNCY_FOO`.
-static std::string FlagToEnvVar(const char* flag) {
+std::string FlagToEnvVar(const char* flag) {
   const std::string flag_str(flag);
   std::string env_var;
   for (size_t i = 0; i < flag_str.length(); ++i)
@@ -28,7 +28,7 @@ static std::string FlagToEnvVar(const char* flag) {
 // Parses a `string` as a command line flag.
 // The string should have the format "--flag=value".
 // Returns the value of the flag or `nullptr` if the parsing fails.
-static const char* ParseFlagValue(const char* str, const char* flag) {
+const char* ParseFlagValue(const char* str, const char* flag) {
   // `str` and `flag` must not be nullptr.
   if (str == nullptr || flag == nullptr) return nullptr;
   // The flag must start with "--".
@@ -44,10 +44,10 @@ static const char* ParseFlagValue(const char* str, const char* flag) {
 }
 
 // =============================================================================
-// Parses `str` to an `int` data type.
+// Parses `str` to an `int32_t` data type.
 // If successful, writes the result to `*value` and returns true.
 // Otherwise, leaves `*value` unchanged and returns false.
-static bool ParseInt(const std::string& src_text, const char* str, int* value) {
+bool ParseInt32(const std::string& src_text, const char* str, int32_t* value) {
   // Parse the environment variable as a decimal integer.
   char* end = nullptr;
   const long long_value = strtol(str, &end, 10);  // NOLINT(runtime/int)
@@ -59,7 +59,7 @@ static bool ParseInt(const std::string& src_text, const char* str, int* value) {
     return false;
   }
   // Is the parsed value in the range of an `int`?
-  const int result = static_cast<int>(long_value);
+  const int32_t result = static_cast<int32_t>(long_value);
   if (long_value == std::numeric_limits<long>::max() ||  // NOLINT(runtime/int)
       long_value == std::numeric_limits<long>::min() ||  // NOLINT(runtime/int)
       result != long_value) {
@@ -74,24 +74,24 @@ static bool ParseInt(const std::string& src_text, const char* str, int* value) {
 }
 
 // =============================================================================
-int IntFromEnv(const char* flag, int default_value) {
+int32_t Int32FromEnv(const char* flag, int32_t default_value) {
   const std::string env_var = FlagToEnvVar(flag);
   const char* const value_str = getenv(env_var.c_str());
-  int value = default_value;
+  int32_t value = default_value;
   if (value_str == nullptr ||
-      !ParseInt(std::string("Env variable ") + env_var, value_str, &value))
+      !ParseInt32(std::string("Env variable ") + env_var, value_str, &value))
     return default_value;
   return value;
 }
 
 // =============================================================================
-bool ParseIntFlag(const char* str, const char* flag, int* value) {
+bool ParseInt32Flag(const char* str, const char* flag, int32_t* value) {
   // Get value of the flag as a string.
   const char* const value_str = ParseFlagValue(str, flag);
   // Abort if the parsing failed.
   if (value_str == nullptr) return false;
   // Set `*value` to the value of the flag.
-  return ParseInt(std::string("Value of flag --") + flag, value_str, value);
+  return ParseInt32(std::string("Value of flag --") + flag, value_str, value);
 }
 
 }  // namespace modcncy
