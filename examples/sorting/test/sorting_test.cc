@@ -2,45 +2,33 @@
 // Use of this source code is governed by the license found in the LICENSE file.
 // -----------------------------------------------------------------------------
 
-#include <gmock/gmock.h>
+#include "examples/sorting/include/sorting.h"
+
 #include <gtest/gtest.h>
 
 #include <vector>
 
-#include "examples/sorting/include/bitonicsort.h"
+class SortingTest : public testing::TestWithParam<sorting::Type> {};
+
+INSTANTIATE_TEST_SUITE_P(AllSortingTypes, SortingTest,
+                         testing::Values(sorting::Type::kStdSort,
+                                         sorting::Type::kOriginalBitonicsort,
+                                         sorting::Type::kSegmentedBitonicsort,
+                                         sorting::Type::kOmpBasedBitonicsort,
+                                         sorting::Type::kNonBlockingBitonicsort,
+                                         sorting::Type::kGnuMultiwayMergesort));
 
 // =============================================================================
-TEST(BitonicsortTest, SequentialSortSmallVectorOfInts) {
-  std::vector<int> unsorted = {5, 7, 1, 4, 8, 2, 3, 6};
-  bitonicsort::sort(unsorted.begin(), unsorted.end(),
-                    bitonicsort::ExecutionPolicy::kSequential,
-                    /*num_threads=*/1, /*segment_size=*/2);
-  EXPECT_THAT(unsorted, testing::ElementsAre(1, 2, 3, 4, 5, 6, 7, 8));
-}
-
-// =============================================================================
-TEST(BitonicsortTest, ParallelOmpBasedSortSmallVectorOfInts) {
-  std::vector<int> unsorted = {5, 7, 1, 4, 8, 2, 3, 6};
-  bitonicsort::sort(unsorted.begin(), unsorted.end(),
-                    bitonicsort::ExecutionPolicy::kOmpBased, /*num_threads=*/2,
-                    /*segment_size=*/2);
-  EXPECT_THAT(unsorted, testing::ElementsAre(1, 2, 3, 4, 5, 6, 7, 8));
-}
-
-// =============================================================================
-TEST(BitonicsortTest, ParallelNonBlockingSortSmallVectorOfInts) {
-  std::vector<int> unsorted = {5, 7, 1, 4, 8, 2, 3, 6};
-  bitonicsort::sort(unsorted.begin(), unsorted.end(),
-                    bitonicsort::ExecutionPolicy::kNonBlocking,
-                    /*num_threads=*/2, /*segment_size=*/2);
-  EXPECT_THAT(unsorted, testing::ElementsAre(1, 2, 3, 4, 5, 6, 7, 8));
-}
-
-// =============================================================================
-TEST(BitonicsortTest, ParallelGnuMultiwayMergesortSmallVectorOfInts) {
-  std::vector<int> unsorted = {5, 7, 1, 4, 8, 2, 3, 6};
-  bitonicsort::sort(unsorted.begin(), unsorted.end(),
-                    bitonicsort::ExecutionPolicy::kGnuMergesort,
-                    /*num_threads=*/2);
-  EXPECT_THAT(unsorted, testing::ElementsAre(1, 2, 3, 4, 5, 6, 7, 8));
+TEST_P(SortingTest, Sort32BitInts) {
+  constexpr size_t size = 1024;
+  std::vector<int32_t> sorted;
+  std::vector<int32_t> unsorted;
+  sorted.reserve(size);
+  unsorted.reserve(size);
+  for (size_t i = 0; i < size; ++i) {
+    unsorted.push_back(size - i - 1);
+    sorted.push_back(i);
+  }
+  sorting::sort(unsorted.begin(), unsorted.end(), /*type=*/GetParam());
+  EXPECT_EQ(unsorted, sorted);
 }

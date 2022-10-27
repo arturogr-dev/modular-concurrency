@@ -8,9 +8,10 @@
 #include <cassert>
 #include <random>
 #include <string>
+#include <thread>  // NOLINT(build/c++11)
 #include <vector>
 
-#include "examples/sorting/include/bitonicsort.h"
+#include "examples/sorting/include/sorting.h"
 
 // Experiment sorting data sizes that could potentially fit in L2, L3 and DRAM.
 static constexpr int kDataSizeBegin = 15;  //   128 kB (Assuming 4 bytes ints).
@@ -31,17 +32,20 @@ static bool IsSorted(const std::vector<int>& data) {
 
 // =============================================================================
 // Benchmark: Bitonicsort by Segments.
-template <bitonicsort::ExecutionPolicy policy>
-static void BM_Ints(benchmark::State& state) {  // NOLINT(runtime/references)
+template <sorting::Type type>
+static void BM_Sort32BitInts(benchmark::State& state) {  // NOLINT
   // Setup.
-  const int data_size = 1 << state.range(0);  // Ensures a power of 2.
-  const int segment_size = bitonicsort::internal::kDefaultSegmentSize;
-  const int threads = (policy != bitonicsort::ExecutionPolicy::kSequential)
-                          ? std::thread::hardware_concurrency()
-                          : 1;
-  std::vector<int> data;
+  const size_t data_size = 1 << state.range(0);  // Ensures a power of 2.
+  const size_t segment_size = 2048;              // Elements.
+  size_t num_threads = std::thread::hardware_concurrency();
+  if (type == sorting::Type::kStdSort ||
+      type == sorting::Type::kOriginalBitonicsort ||
+      type == sorting::Type::kSegmentedBitonicsort)
+    num_threads = 1;
+  std::vector<int32_t> data;
   data.reserve(data_size);
-  for (int i = 1; i <= data_size; ++i) data.push_back(i);
+  for (size_t i = 0; i < data_size; ++i)
+    data.push_back(static_cast<int32_t>(i));
   std::random_device rand_dev;
   std::mt19937 gen(rand_dev());
   std::shuffle(data.begin(), data.end(), gen);
@@ -49,7 +53,7 @@ static void BM_Ints(benchmark::State& state) {  // NOLINT(runtime/references)
 
   // Benchmark.
   for (auto _ : state) {
-    bitonicsort::sort(data.begin(), data.end(), policy, threads, segment_size);
+    sorting::sort(data.begin(), data.end(), type, num_threads, segment_size);
 
     // Prepare for next iteration.
     state.PauseTiming();
@@ -70,24 +74,32 @@ static void BM_Ints(benchmark::State& state) {  // NOLINT(runtime/references)
       std::to_string(segment_in_bytes / 1024) + " kB segment | " +
       std::to_string(num_segments) + " segments | " +
       std::to_string(bitonic_stages) + " bitonic stages | " +
-      std::to_string(threads) + " threads ";
+      std::to_string(num_threads) + " threads ";
   state.SetLabel(label);
   state.SetBytesProcessed(state.iterations() * data_in_bytes);
 }
 
-BENCHMARK_TEMPLATE(BM_Ints, bitonicsort::ExecutionPolicy::kSequential)
+BENCHMARK_TEMPLATE(BM_Sort32BitInts, sorting::Type::kStdSort)
     ->DenseRange(kDataSizeBegin, kDataSizeEnd, kDataSizeStep)
     ->Unit(benchmark::kMillisecond)
     ->UseRealTime();
-BENCHMARK_TEMPLATE(BM_Ints, bitonicsort::ExecutionPolicy::kOmpBased)
+BENCHMARK_TEMPLATE(BM_Sort32BitInts, sorting::Type::kOriginalBitonicsort)
     ->DenseRange(kDataSizeBegin, kDataSizeEnd, kDataSizeStep)
     ->Unit(benchmark::kMillisecond)
     ->UseRealTime();
-BENCHMARK_TEMPLATE(BM_Ints, bitonicsort::ExecutionPolicy::kNonBlocking)
+BENCHMARK_TEMPLATE(BM_Sort32BitInts, sorting::Type::kSegmentedBitonicsort)
     ->DenseRange(kDataSizeBegin, kDataSizeEnd, kDataSizeStep)
     ->Unit(benchmark::kMillisecond)
     ->UseRealTime();
-BENCHMARK_TEMPLATE(BM_Ints, bitonicsort::ExecutionPolicy::kGnuMergesort)
+BENCHMARK_TEMPLATE(BM_Sort32BitInts, sorting::Type::kOmpBasedBitonicsort)
+    ->DenseRange(kDataSizeBegin, kDataSizeEnd, kDataSizeStep)
+    ->Unit(benchmark::kMillisecond)
+    ->UseRealTime();
+BENCHMARK_TEMPLATE(BM_Sort32BitInts, sorting::Type::kNonBlockingBitonicsort)
+    ->DenseRange(kDataSizeBegin, kDataSizeEnd, kDataSizeStep)
+    ->Unit(benchmark::kMillisecond)
+    ->UseRealTime();
+BENCHMARK_TEMPLATE(BM_Sort32BitInts, sorting::Type::kGnuMultiwayMergesort)
     ->DenseRange(kDataSizeBegin, kDataSizeEnd, kDataSizeStep)
     ->Unit(benchmark::kMillisecond)
     ->UseRealTime();

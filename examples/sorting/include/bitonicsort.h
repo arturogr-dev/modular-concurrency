@@ -2,14 +2,21 @@
 // Use of this source code is governed by the license found in the LICENSE file.
 // -----------------------------------------------------------------------------
 //
-// This is an implementation of the generalized version of the so-called
-// bitonicsort algorithm for shared-memory computer architectures. It is based
-// on `merge` operations on data segments, instead of `compare-exchange`
-// operations on individual data elements. Initially, all segments are
-// individually sorted. After that, each sorted segmented is processed by the
-// bitonic-merging network. In the end, all the input data is globally sorted.
+// This is a series of implementations of different versions of the so-called
+// bitonicsort algorithm for shared-memory computer architectures.
+//
+// These implementations are based on `merge` operations on data segments,
+// except the original algorithm which is based on `compare-exchange` operations
+// on individual data elements.
+//
+// Initially, for the segmented implementations, all segments are individually
+// sorted. After that, each sorted segmented is processed by the bitonic merging
+// network. In the end, all the input data is globally sorted.
 //
 // There are different versions of the algorithm.
+//
+//   + An implementation of the original bitonicsort algorithm, which is based
+//     on `compare-exchange` operations.
 //
 //   + A sequential (not multithreaded) implementation, where a single execution
 //     thread will perform all the merging stages of the bitonic network.
@@ -38,101 +45,33 @@
 
 #include <algorithm>
 #include <atomic>
-#include <parallel/algorithm>  // NOLINT(build/include_order)
-#include <thread>              // NOLINT(build/c++11)
+#include <iterator>
+#include <thread>  // NOLINT(build/c++11)
+#include <utility>
 #include <vector>
 
 #include "examples/sorting/include/merge.h"
 
+namespace sorting {
 namespace bitonicsort {
 
-// Supported execution policies.
-enum class ExecutionPolicy {
-  kSequential = 0,    // Sequential behavior, no parallelism.
-  kOmpBased = 1,      // Using OpenMP directives and implicit barrier.
-  kNonBlocking = 2,   // Exploiting the memory access pattern of the algorithm.
-  kGnuMergesort = 3,  // To compare against the std multiway mergesort impl.
-};
-
-namespace internal {
-
-static constexpr int kDefaultSegmentSize = 256;  // Elements.
-
+// ===========================================================================
+// Original bitonicsort.
 template <typename Iterator>
-void sequential_sort(Iterator begin, Iterator end, int segment_size);
-
-template <typename Iterator>
-void parallel_ompbased_sort(Iterator begin, Iterator end, int num_threads,
-                            int segment_size);
-
-template <typename Iterator>
-void parallel_nonblocking_sort(Iterator begin, Iterator end, int num_threads,
-                               int segment_size);
-
-}  // namespace internal
-
-// =============================================================================
-// Main function to execute the different policies.
-template <typename Iterator>
-void sort(Iterator begin, Iterator end,
-          ExecutionPolicy policy = ExecutionPolicy::kSequential,
-          int num_threads = std::thread::hardware_concurrency(),
-          int segment_size = internal::kDefaultSegmentSize) {
-  switch (policy) {
-    case ExecutionPolicy::kSequential:
-      internal::sequential_sort(begin, end, segment_size);
-      break;
-    case ExecutionPolicy::kOmpBased:
-      internal::parallel_ompbased_sort(begin, end, num_threads, segment_size);
-      break;
-    case ExecutionPolicy::kNonBlocking:
-      internal::parallel_nonblocking_sort(begin, end, num_threads,
-                                          segment_size);
-      break;
-    case ExecutionPolicy::kGnuMergesort:
-      __gnu_parallel::sort(begin, end,
-                           __gnu_parallel::multiway_mergesort_tag(num_threads));
-      break;
-  }
-}
-
-}  // namespace bitonicsort
-
-////////////////////////////////////////////////////////////////////////////////
-///////////////////////  I M P L E M E N T A T I O N S  ////////////////////////
-////////////////////////////////////////////////////////////////////////////////
-
-namespace bitonicsort {
-namespace internal {
-
-// =============================================================================
-template <typename Iterator>
-void sequential_sort(Iterator begin, Iterator end, int segment_size) {
+static void original(Iterator begin, Iterator end) {
   // Setup.
-  const int data_size = end - begin;
-  const int num_segments = data_size / segment_size;
-  std::vector<int> buffer(2 * segment_size);
+  const size_t data_size = end - begin;
 
-  // Sort each indiviual segment.
-  for (int i = 0; i < data_size; i += segment_size)
-    std::sort(begin + i, begin + i + segment_size);
-
-  // Bitonic merging network.
-  for (int k = 2; k <= num_segments; k <<= 1) {
-    for (int j = k >> 1; j > 0; j >>= 1) {
-      for (int i = 0; i < num_segments; ++i) {
-        const int ij = i ^ j;
+  // Bitonic sorting network.
+  for (size_t k = 2; k <= data_size; k *= 2) {
+    for (size_t j = k >> 1; j > 0; j >>= 1) {
+      for (size_t i = 0; i < data_size; ++i) {
+        const size_t ij = i ^ j;
         if (i < ij) {
-          if ((i & k) == 0)
-            merge::MergeUp(/*segment1=*/&*(begin + i * segment_size),
-                           /*segment2=*/&*(begin + ij * segment_size),
-                           /*buffer=*/buffer.data(),
-                           /*segment_size=*/segment_size);
-          else
-            merge::MergeDn(/*segment1=*/&*(begin + i * segment_size),
-                           /*segment2=*/&*(begin + ij * segment_size),
-                           /*buffer=*/buffer.data(),
-                           /*segment_size=*/segment_size);
+          if ((i & k) == 0 && *(begin + i) > *(begin + ij))
+            std::swap(*(begin + i), *(begin + ij));
+          if ((i & k) != 0 && *(begin + i) < *(begin + ij))
+            std::swap(*(begin + i), *(begin + ij));
         }
       }
     }
@@ -140,41 +79,81 @@ void sequential_sort(Iterator begin, Iterator end, int segment_size) {
 }
 
 // =============================================================================
+// Segmented bitonicsort.
 template <typename Iterator>
-void parallel_ompbased_sort(Iterator begin, Iterator end, int num_threads,
-                            int segment_size) {
+static void segmented(Iterator begin, Iterator end, size_t segment_size) {
+  // Setup.
+  const size_t data_size = end - begin;
+  const size_t num_segments = data_size / segment_size;
+  const size_t buffer_size = 2 * segment_size;
+  typedef typename std::iterator_traits<Iterator>::value_type value_type;
+  std::vector<value_type> buffer(buffer_size);
+
+  // Sort each indiviual segment.
+  for (size_t i = 0; i < data_size; i += segment_size)
+    std::sort(begin + i, begin + i + segment_size);
+
+  // Bitonic merging network.
+  for (size_t k = 2; k <= num_segments; k <<= 1) {
+    for (size_t j = k >> 1; j > 0; j >>= 1) {
+      for (size_t i = 0; i < num_segments; ++i) {
+        const size_t ij = i ^ j;
+        if (i < ij) {
+          if ((i & k) == 0)
+            merge::Up(/*segment1=*/&*(begin + i * segment_size),
+                      /*segment2=*/&*(begin + ij * segment_size),
+                      /*buffer=*/buffer.data(),
+                      /*segment_size=*/segment_size);
+          else
+            merge::Dn(/*segment1=*/&*(begin + i * segment_size),
+                      /*segment2=*/&*(begin + ij * segment_size),
+                      /*buffer=*/buffer.data(),
+                      /*segment_size=*/segment_size);
+        }
+      }
+    }
+  }
+}
+
+// =============================================================================
+// Parallel OpenMP segmented bitonicsort.
+template <typename Iterator>
+static void parallel_ompbased(Iterator begin, Iterator end, size_t num_threads,
+                              size_t segment_size) {
   // Setup.
   omp_set_dynamic(0);
   omp_set_num_threads(num_threads);
 
 #pragma omp parallel
   {
-    const int data_size = end - begin;
-    const int num_segments = data_size / segment_size;
-    std::vector<int> buffer(2 * segment_size);
+    const size_t data_size = end - begin;
+    const size_t num_segments = data_size / segment_size;
+    const size_t buffer_size = 2 * segment_size;
+    typedef typename std::iterator_traits<Iterator>::value_type value_type;
+    std::vector<value_type> buffer(buffer_size);
 
     // Sort each indiviual segment.
 #pragma omp for
-    for (int i = 0; i < data_size; i += segment_size)
+    for (size_t i = 0; i < data_size; i += segment_size)
       std::sort(begin + i, begin + i + segment_size);
 
     // Bitonic merging network.
-    for (int k = 2; k <= num_segments; k <<= 1) {
-      for (int j = k >> 1; j > 0; j >>= 1) {
+    for (size_t k = 2; k <= num_segments; k <<= 1) {
+      for (size_t j = k >> 1; j > 0; j >>= 1) {
 #pragma omp for
-        for (int i = 0; i < num_segments; ++i) {
-          const int ij = i ^ j;
+        for (size_t i = 0; i < num_segments; ++i) {
+          const size_t ij = i ^ j;
           if (i < ij) {
             if ((i & k) == 0)
-              merge::MergeUp(/*segment1=*/&*(begin + i * segment_size),
-                             /*segment2=*/&*(begin + ij * segment_size),
-                             /*buffer=*/buffer.data(),
-                             /*segment_size=*/segment_size);
+              merge::Up(/*segment1=*/&*(begin + i * segment_size),
+                        /*segment2=*/&*(begin + ij * segment_size),
+                        /*buffer=*/buffer.data(),
+                        /*segment_size=*/segment_size);
             else
-              merge::MergeDn(/*segment1=*/&*(begin + i * segment_size),
-                             /*segment2=*/&*(begin + ij * segment_size),
-                             /*buffer=*/buffer.data(),
-                             /*segment_size=*/segment_size);
+              merge::Dn(/*segment1=*/&*(begin + i * segment_size),
+                        /*segment2=*/&*(begin + ij * segment_size),
+                        /*buffer=*/buffer.data(),
+                        /*segment_size=*/segment_size);
           }
         }
       }
@@ -183,66 +162,67 @@ void parallel_ompbased_sort(Iterator begin, Iterator end, int num_threads,
 }
 
 // =============================================================================
+// Parallel non-blocking segmented bitonicsort.
 template <typename Iterator>
-void parallel_nonblocking_sort(Iterator begin, Iterator end, int num_threads,
-                               int segment_size) {
+static void parallel_nonblocking(Iterator begin, Iterator end,
+                                 size_t num_threads, size_t segment_size) {
   // Setup.
-  const int data_size = end - begin;
-  const int num_segments = data_size / segment_size;
+  const size_t data_size = end - begin;
+  const size_t num_segments = data_size / segment_size;
 
   // Work to be done per thread.
-  auto work = [](Iterator begin, int thread_index, int num_threads,
-                 int num_segments, int segment_size,
-                 std::vector<std::atomic<int>>* segment_stage_count) {
+  auto work = [](Iterator begin, size_t thread_index, size_t num_threads,
+                 size_t num_segments, size_t segment_size,
+                 std::vector<std::atomic<size_t>>* segment_stage_count) {
     // Setup.
-    const int num_segments_per_thread = num_segments / num_threads;
-    const int low_segment = thread_index * num_segments_per_thread;
-    const int high_segment = low_segment + num_segments_per_thread;
-    const int low_index = low_segment * segment_size;
-    const int high_index = high_segment * segment_size;
-    std::vector<int> buffer(2 * segment_size);
-    int my_current_stage = 0;
+    const size_t num_segments_per_thread = num_segments / num_threads;
+    const size_t low_segment = thread_index * num_segments_per_thread;
+    const size_t high_segment = low_segment + num_segments_per_thread;
+    const size_t low_index = low_segment * segment_size;
+    const size_t high_index = high_segment * segment_size;
+    const size_t buffer_size = 2 * segment_size;
+    typedef typename std::iterator_traits<Iterator>::value_type value_type;
+    std::vector<value_type> buffer(buffer_size);
+    size_t my_stage = 0;
 
-    for (int i = low_index; i < high_index; i += segment_size) {
+    for (size_t i = low_index; i < high_index; i += segment_size) {
       // Sort each indiviual segment.
       std::sort(begin + i, begin + i + segment_size);
       // Mark segment "ready" for next stage.
-      const int segment_id = i / segment_size;
+      const size_t segment_id = i / segment_size;
       (*segment_stage_count)[segment_id].fetch_add(1);
     }
 
     // Mark this thread "ready" for next stage.
-    ++my_current_stage;
+    ++my_stage;
 
     // Bitonic merging network.
-    for (int k = 2; k <= num_segments; k <<= 1) {
-      for (int j = k >> 1; j > 0; j >>= 1) {
-        for (int i = low_segment; i < high_segment; ++i) {
-          const int ij = i ^ j;
+    for (size_t k = 2; k <= num_segments; k <<= 1) {
+      for (size_t j = k >> 1; j > 0; j >>= 1) {
+        for (size_t i = low_segment; i < high_segment; ++i) {
+          const size_t ij = i ^ j;
           if (i < ij) {
-            const int segment1_index = i * segment_size;
-            const int segment2_index = ij * segment_size;
-            const int segment1_id = segment1_index / segment_size;
-            const int segment2_id = segment2_index / segment_size;
+            const size_t segment1_index = i * segment_size;
+            const size_t segment2_index = ij * segment_size;
+            const size_t segment1_id = segment1_index / segment_size;
+            const size_t segment2_id = segment2_index / segment_size;
 
             // Wait until the segments I need are on my same stage.
-            while (my_current_stage !=
-                   (*segment_stage_count)[segment1_id].load())
+            while (my_stage != (*segment_stage_count)[segment1_id].load())
               modcncy::cpu_yield();
-            while (my_current_stage !=
-                   (*segment_stage_count)[segment2_id].load())
+            while (my_stage != (*segment_stage_count)[segment2_id].load())
               modcncy::cpu_yield();
 
             if ((i & k) == 0)
-              merge::MergeUp(/*segment1=*/&*(begin + segment1_index),
-                             /*segment2=*/&*(begin + segment2_index),
-                             /*buffer=*/buffer.data(),
-                             /*segment_size=*/segment_size);
+              merge::Up(/*segment1=*/&*(begin + segment1_index),
+                        /*segment2=*/&*(begin + segment2_index),
+                        /*buffer=*/buffer.data(),
+                        /*segment_size=*/segment_size);
             else
-              merge::MergeDn(/*segment1=*/&*(begin + segment1_index),
-                             /*segment2=*/&*(begin + segment2_index),
-                             /*buffer=*/buffer.data(),
-                             /*segment_size=*/segment_size);
+              merge::Dn(/*segment1=*/&*(begin + segment1_index),
+                        /*segment2=*/&*(begin + segment2_index),
+                        /*buffer=*/buffer.data(),
+                        /*segment_size=*/segment_size);
 
             // Mark segments "ready" for next stage.
             (*segment_stage_count)[segment1_id].fetch_add(1);
@@ -250,19 +230,20 @@ void parallel_nonblocking_sort(Iterator begin, Iterator end, int num_threads,
           }
         }
 
-        ++my_current_stage;
+        // Mark this thread "ready" for next stage.
+        ++my_stage;
       }
     }
   };  // function work
 
-  std::vector<std::atomic<int>> segment_stage_count(num_segments);
-  for (int i = 0; i < num_segments; ++i) segment_stage_count[i] = 0;
+  std::vector<std::atomic<size_t>> segment_stage_count(num_segments);
+  for (size_t i = 0; i < num_segments; ++i) segment_stage_count[i] = 0;
 
   // Launch threads.
   // Main thread also performs work as thread 0, so loops starts in index 1.
   std::vector<std::thread> threads;
   threads.reserve(num_threads - 1);
-  for (int i = 1; i < num_threads; ++i) {
+  for (size_t i = 1; i < num_threads; ++i) {
     threads.push_back(std::thread(work, begin, /*thread_index=*/i, num_threads,
                                   num_segments, segment_size,
                                   &segment_stage_count));
@@ -275,7 +256,7 @@ void parallel_nonblocking_sort(Iterator begin, Iterator end, int num_threads,
   for (auto& thread : threads) thread.join();
 }
 
-}  // namespace internal
 }  // namespace bitonicsort
+}  // namespace sorting
 
 #endif  // EXAMPLES_SORTING_INCLUDE_BITONICSORT_H_
