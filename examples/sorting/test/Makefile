@@ -23,7 +23,6 @@ MODCNCY_LIB_DIR = ../../../modcncy
 THIRD_PARTY_DIR = ../../../third_party
 
 INC_PATHS_TEST = -I$(BITONICSORT_DIR) -I$(MODCNCY_LIB_DIR)/include -I$(THIRD_PARTY_DIR)/googletest/googletest/include
-# INC_PATHS_TEST = -I$(BITONICSORT_DIR) -I$(MODCNCY_LIB_DIR)/include -I$(THIRD_PARTY_DIR)/googletest/googletest/include -I$(THIRD_PARTY_DIR)/googletest/googlemock/include
 LNK_PATHS_TEST = -L$(MODCNCY_LIB_DIR)/build/lib -L$(THIRD_PARTY_DIR)/googletest/build/lib
 LNK_NAMES_TEST = -lmodcncy -lgtest -lgtest_main -lpthread
 
