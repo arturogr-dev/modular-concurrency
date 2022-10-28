@@ -28,7 +28,7 @@ namespace merge {
 // two times the size of each segment. The first half of the buffer is copied to
 // `segment1` and the second half of the buffer is copied to `segment2`.
 template <typename T>
-static void Scatter(T* buffer, T* segment1, T* segment2, size_t segment_size) {
+void Scatter(T* buffer, T* segment1, T* segment2, size_t segment_size) {
   const size_t bytes = segment_size * sizeof(T);
   std::memcpy(/*dst=*/segment1, /*src=*/buffer, /*cnt=*/bytes);
   std::memcpy(/*dst=*/segment2, /*src=*/buffer + segment_size, /*cnt=*/bytes);
@@ -36,12 +36,11 @@ static void Scatter(T* buffer, T* segment1, T* segment2, size_t segment_size) {
 
 // =============================================================================
 // Merges two segments of the same size in non-decreasing order.
-// `segment2` is in non-decreasing order.
+// `segment1` is in non-decreasing order.
 // `segment2` is in non-decreasing order.
 // The buffer is two times the size of each segment.
 template <typename T>
-static void UpFromUpUp(T* segment1, T* segment2, T* buffer,
-                       size_t segment_size) {
+void UpFromUpUp(T* segment1, T* segment2, T* buffer, size_t segment_size) {
   int64_t size = static_cast<int64_t>(segment_size);
   int64_t i = 0, j = 0, k = 0;
   while (i < size && j < size) {
@@ -57,12 +56,11 @@ static void UpFromUpUp(T* segment1, T* segment2, T* buffer,
 
 // =============================================================================
 // Merges two segments of the same size in non-decreasing order.
-// `segment2` is in non-decreasing order.
+// `segment1` is in non-decreasing order.
 // `segment2` is in non-increasing order.
 // The buffer is two times the size of each segment.
 template <typename T>
-static void UpFromUpDn(T* segment1, T* segment2, T* buffer,
-                       size_t segment_size) {
+void UpFromUpDn(T* segment1, T* segment2, T* buffer, size_t segment_size) {
   int64_t size = static_cast<int64_t>(segment_size);
   int64_t i = 0, j = size - 1, k = 0;
   while (i < size && j >= 0) {
@@ -78,12 +76,11 @@ static void UpFromUpDn(T* segment1, T* segment2, T* buffer,
 
 // =============================================================================
 // Merges two segments of the same size in non-decreasing order.
-// `segment2` is in non-increasing order.
+// `segment1` is in non-increasing order.
 // `segment2` is in non-decreasing order.
 // The buffer is two times the size of each segment.
 template <typename T>
-static void UpFromDnUp(T* segment1, T* segment2, T* buffer,
-                       size_t segment_size) {
+void UpFromDnUp(T* segment1, T* segment2, T* buffer, size_t segment_size) {
   int64_t size = static_cast<int64_t>(segment_size);
   int64_t i = size - 1, j = 0, k = 0;
   while (i >= 0 && j < size) {
@@ -99,12 +96,11 @@ static void UpFromDnUp(T* segment1, T* segment2, T* buffer,
 
 // =============================================================================
 // Merges two segments of the same size in non-decreasing order.
-// `segment2` is in non-increasing order.
+// `segment1` is in non-increasing order.
 // `segment2` is in non-increasing order.
 // The buffer is two times the size of each segment.
 template <typename T>
-static void UpFromDnDn(T* segment1, T* segment2, T* buffer,
-                       size_t segment_size) {
+void UpFromDnDn(T* segment1, T* segment2, T* buffer, size_t segment_size) {
   int64_t size = static_cast<int64_t>(segment_size);
   int64_t i = size - 1, j = size - 1, k = 0;
   while (i >= 0 && j >= 0) {
@@ -120,12 +116,11 @@ static void UpFromDnDn(T* segment1, T* segment2, T* buffer,
 
 // =============================================================================
 // Merges two segments of the same size in non-increasing order.
-// `segment2` is in non-decreasing order.
+// `segment1` is in non-decreasing order.
 // `segment2` is in non-decreasing order.
 // The buffer is two times the size of each segment.
 template <typename T>
-static void DnFromUpUp(T* segment1, T* segment2, T* buffer,
-                       size_t segment_size) {
+void DnFromUpUp(T* segment1, T* segment2, T* buffer, size_t segment_size) {
   int64_t size = static_cast<int64_t>(segment_size);
   int64_t i = size - 1, j = size - 1, k = 0;
   while (i >= 0 && j >= 0) {
@@ -141,12 +136,11 @@ static void DnFromUpUp(T* segment1, T* segment2, T* buffer,
 
 // =============================================================================
 // Merges two segments of the same size in non-increasing order.
-// `segment2` is in non-decreasing order.
+// `segment1` is in non-decreasing order.
 // `segment2` is in non-increasing order.
 // The buffer is two times the size of each segment.
 template <typename T>
-static void DnFromUpDn(T* segment1, T* segment2, T* buffer,
-                       size_t segment_size) {
+void DnFromUpDn(T* segment1, T* segment2, T* buffer, size_t segment_size) {
   int64_t size = static_cast<int64_t>(segment_size);
   int64_t i = size - 1, j = 0, k = 0;
   while (i >= 0 && j < size) {
@@ -162,12 +156,11 @@ static void DnFromUpDn(T* segment1, T* segment2, T* buffer,
 
 // =============================================================================
 // Merges two segments of the same size in non-increasing order.
-// `segment2` is in non-increasing order.
+// `segment1` is in non-increasing order.
 // `segment2` is in non-decreasing order.
 // The buffer is two times the size of each segment.
 template <typename T>
-static void DnFromDnUp(T* segment1, T* segment2, T* buffer,
-                       size_t segment_size) {
+void DnFromDnUp(T* segment1, T* segment2, T* buffer, size_t segment_size) {
   int64_t size = static_cast<int64_t>(segment_size);
   int64_t i = 0, j = size - 1, k = 0;
   while (i < size && j >= 0) {
@@ -183,12 +176,11 @@ static void DnFromDnUp(T* segment1, T* segment2, T* buffer,
 
 // =============================================================================
 // Merges two segments of the same size in non-increasing order.
-// `segment2` is in non-increasing order.
+// `segment1` is in non-increasing order.
 // `segment2` is in non-increasing order.
 // The buffer is two times the size of each segment.
 template <typename T>
-static void DnFromDnDn(T* segment1, T* segment2, T* buffer,
-                       size_t segment_size) {
+void DnFromDnDn(T* segment1, T* segment2, T* buffer, size_t segment_size) {
   int64_t size = static_cast<int64_t>(segment_size);
   int64_t i = 0, j = 0, k = 0;
   while (i < size && j < size) {
@@ -207,7 +199,7 @@ static void DnFromDnDn(T* segment1, T* segment2, T* buffer,
 // whether they are sorted in non-decreasing or non-increasing order.
 // The buffer is two times the size of each segment.
 template <typename T>
-static void Up(T* segment1, T* segment2, T* buffer, size_t segment_size) {
+void Up(T* segment1, T* segment2, T* buffer, size_t segment_size) {
   const size_t l = 0, r = segment_size - 1;
   if (segment1[l] < segment1[r] && segment2[l] < segment2[r])
     UpFromUpUp(segment1, segment2, buffer, segment_size);
@@ -224,7 +216,7 @@ static void Up(T* segment1, T* segment2, T* buffer, size_t segment_size) {
 // whether they are sorted in non-decreasing or non-increasing order.
 // The buffer is two times the size of each segment.
 template <typename T>
-static void Dn(T* segment1, T* segment2, T* buffer, size_t segment_size) {
+void Dn(T* segment1, T* segment2, T* buffer, size_t segment_size) {
   const size_t l = 0, r = segment_size - 1;
   if (segment1[l] < segment1[r] && segment2[l] < segment2[r])
     DnFromUpUp(segment1, segment2, buffer, segment_size);

@@ -58,7 +58,7 @@ namespace bitonicsort {
 // ===========================================================================
 // Original bitonicsort.
 template <typename Iterator>
-static void original(Iterator begin, Iterator end) {
+void original(Iterator begin, Iterator end) {
   // Setup.
   const size_t data_size = end - begin;
 
@@ -81,7 +81,7 @@ static void original(Iterator begin, Iterator end) {
 // =============================================================================
 // Segmented bitonicsort.
 template <typename Iterator>
-static void segmented(Iterator begin, Iterator end, size_t segment_size) {
+void segmented(Iterator begin, Iterator end, size_t segment_size) {
   // Setup.
   const size_t data_size = end - begin;
   const size_t num_segments = data_size / segment_size;
@@ -118,8 +118,8 @@ static void segmented(Iterator begin, Iterator end, size_t segment_size) {
 // =============================================================================
 // Parallel OpenMP segmented bitonicsort.
 template <typename Iterator>
-static void parallel_ompbased(Iterator begin, Iterator end, size_t num_threads,
-                              size_t segment_size) {
+void parallel_ompbased(Iterator begin, Iterator end, size_t num_threads,
+                       size_t segment_size) {
   // Setup.
   omp_set_dynamic(0);
   omp_set_num_threads(num_threads);
@@ -164,16 +164,16 @@ static void parallel_ompbased(Iterator begin, Iterator end, size_t num_threads,
 // =============================================================================
 // Parallel non-blocking segmented bitonicsort.
 template <typename Iterator>
-static void parallel_nonblocking(Iterator begin, Iterator end,
-                                 size_t num_threads, size_t segment_size) {
+void parallel_nonblocking(Iterator begin, Iterator end, size_t num_threads,
+                          size_t segment_size) {
   // Setup.
   const size_t data_size = end - begin;
   const size_t num_segments = data_size / segment_size;
 
   // Work to be done per thread.
-  auto work = [](Iterator begin, size_t thread_index, size_t num_threads,
-                 size_t num_segments, size_t segment_size,
-                 std::vector<std::atomic<size_t>>* segment_stage_count) {
+  auto thread_work = [](Iterator begin, size_t thread_index, size_t num_threads,
+                        size_t num_segments, size_t segment_size,
+                        std::vector<std::atomic<size_t>>* segment_stage_count) {
     // Setup.
     const size_t num_segments_per_thread = num_segments / num_threads;
     const size_t low_segment = thread_index * num_segments_per_thread;
@@ -234,7 +234,7 @@ static void parallel_nonblocking(Iterator begin, Iterator end,
         ++my_stage;
       }
     }
-  };  // function work
+  };  // function thread_work
 
   std::vector<std::atomic<size_t>> segment_stage_count(num_segments);
   for (size_t i = 0; i < num_segments; ++i) segment_stage_count[i] = 0;
@@ -244,12 +244,12 @@ static void parallel_nonblocking(Iterator begin, Iterator end,
   std::vector<std::thread> threads;
   threads.reserve(num_threads - 1);
   for (size_t i = 1; i < num_threads; ++i) {
-    threads.push_back(std::thread(work, begin, /*thread_index=*/i, num_threads,
-                                  num_segments, segment_size,
+    threads.push_back(std::thread(thread_work, begin, /*thread_index=*/i,
+                                  num_threads, num_segments, segment_size,
                                   &segment_stage_count));
   }
-  work(begin, /*thread_index=*/0, num_threads, num_segments, segment_size,
-       &segment_stage_count);
+  thread_work(begin, /*thread_index=*/0, num_threads, num_segments,
+              segment_size, &segment_stage_count);
 
   // Join threads.
   // So main thread can acquire the last published changes of the other threads.
