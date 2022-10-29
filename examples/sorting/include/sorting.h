@@ -17,7 +17,7 @@
 namespace sorting {
 
 // Supported execution policies.
-enum class Type {
+enum class SortType {
   kStdSort = 0,                 // Sequential C++ standard library sort.
   kOriginalBitonicsort = 1,     // Sequential original bitonicsort.
   kSegmentedBitonicsort = 2,    // Sequential segmented bitonicsort.
@@ -29,26 +29,26 @@ enum class Type {
 // =============================================================================
 // Main function to execute the different sorting algorithms.
 template <typename Iterator>
-static void sort(Iterator begin, Iterator end, Type type = Type::kStdSort,
-                 size_t num_threads = std::thread::hardware_concurrency(),
-                 size_t segment_size = 1 /* number of elements */) {
-  switch (type) {
-    case Type::kStdSort:
+void sort(Iterator begin, Iterator end, SortType sort_type = SortType::kStdSort,
+          size_t num_threads = std::thread::hardware_concurrency(),
+          size_t segment_size = 1 /* number of elements */) {
+  switch (sort_type) {
+    case SortType::kStdSort:
       std::sort(begin, end);
       break;
-    case Type::kOriginalBitonicsort:
+    case SortType::kOriginalBitonicsort:
       bitonicsort::original(begin, end);
       break;
-    case Type::kSegmentedBitonicsort:
+    case SortType::kSegmentedBitonicsort:
       bitonicsort::segmented(begin, end, segment_size);
       break;
-    case Type::kOmpBasedBitonicsort:
+    case SortType::kOmpBasedBitonicsort:
       bitonicsort::parallel_ompbased(begin, end, num_threads, segment_size);
       break;
-    case Type::kNonBlockingBitonicsort:
+    case SortType::kNonBlockingBitonicsort:
       bitonicsort::parallel_nonblocking(begin, end, num_threads, segment_size);
       break;
-    case Type::kGnuMultiwayMergesort:
+    case SortType::kGnuMultiwayMergesort:
       __gnu_parallel::sort(begin, end,
                            __gnu_parallel::multiway_mergesort_tag(num_threads));
       break;

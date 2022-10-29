@@ -11,7 +11,7 @@
 
 #include <modcncy/flags.h>
 
-namespace sorting_init {
+namespace sorting {
 
 // Declare command line flags to be used.
 MODCNCY_DECLARE_int32(data_shift);
@@ -32,6 +32,6 @@ void ParseCommandLineFlags(int* argc, char** argv) {
   }
 }
 
-}  // namespace sorting_init
+}  // namespace sorting
 
 #endif  // EXAMPLES_SORTING_TEST_SORTING_INIT_H_

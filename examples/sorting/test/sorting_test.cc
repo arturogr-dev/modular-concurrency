@@ -8,27 +8,31 @@
 
 #include <vector>
 
-class SortingTest : public testing::TestWithParam<sorting::Type> {};
+namespace sorting {
+namespace {
 
-INSTANTIATE_TEST_SUITE_P(AllSortingTypes, SortingTest,
-                         testing::Values(sorting::Type::kStdSort,
-                                         sorting::Type::kOriginalBitonicsort,
-                                         sorting::Type::kSegmentedBitonicsort,
-                                         sorting::Type::kOmpBasedBitonicsort,
-                                         sorting::Type::kNonBlockingBitonicsort,
-                                         sorting::Type::kGnuMultiwayMergesort));
+class SortingCorrectnessTest : public testing::TestWithParam<SortType> {};
+
+INSTANTIATE_TEST_SUITE_P(AllSortingTypes, SortingCorrectnessTest,
+                         testing::Values(SortType::kStdSort,
+                                         SortType::kOriginalBitonicsort,
+                                         SortType::kSegmentedBitonicsort,
+                                         SortType::kOmpBasedBitonicsort,
+                                         SortType::kNonBlockingBitonicsort,
+                                         SortType::kGnuMultiwayMergesort));
 
 // =============================================================================
-TEST_P(SortingTest, Sort32BitInts) {
+TEST_P(SortingCorrectnessTest, Sort32BitInts) {
   constexpr size_t size = 1024;
-  std::vector<int32_t> sorted;
-  std::vector<int32_t> unsorted;
-  sorted.reserve(size);
-  unsorted.reserve(size);
+  std::vector<int32_t> sorted(size);
+  std::vector<int32_t> unsorted(size);
   for (size_t i = 0; i < size; ++i) {
-    unsorted.push_back(size - i - 1);
-    sorted.push_back(i);
+    unsorted[i] = size - i - 1;
+    sorted[i] = i;
   }
-  sorting::sort(unsorted.begin(), unsorted.end(), /*type=*/GetParam());
+  sorting::sort(unsorted.begin(), unsorted.end(), /*sort_type=*/GetParam());
   EXPECT_EQ(unsorted, sorted);
 }
+
+}  // namespace
+}  // namespace sorting
