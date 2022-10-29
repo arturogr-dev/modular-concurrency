@@ -7,13 +7,16 @@
 
 #include <thread>  // NOLINT(build/c++11)
 
+namespace modcncy {
+namespace {
+
 // =============================================================================
 // Benchmark: Barrier Synchronization Primitive.
-template <modcncy::BarrierType barrier_type>
-static void BM_Barrier(benchmark::State& state) {  // NOLINT(runtime/references)
+template <BarrierType barrier_type>
+void BM_Barrier(benchmark::State& state) {  // NOLINT(runtime/references)
   // Setup.
   const auto& num_threads = state.threads();
-  static modcncy::Barrier* barrier = nullptr;
+  static Barrier* barrier = nullptr;
   if (state.thread_index() == 0) {
     barrier = modcncy::Barrier::Create(barrier_type);
   }
@@ -28,12 +31,14 @@ static void BM_Barrier(benchmark::State& state) {  // NOLINT(runtime/references)
   }
 }
 
-BENCHMARK_TEMPLATE(BM_Barrier,
-                   modcncy::BarrierType::kCentralSenseCounterBarrier)
+BENCHMARK_TEMPLATE(BM_Barrier, BarrierType::kCentralSenseCounterBarrier)
     ->ThreadRange(1, std::thread::hardware_concurrency())
     ->UseRealTime();
-BENCHMARK_TEMPLATE(BM_Barrier, modcncy::BarrierType::kCentralStepCounterBarrier)
+BENCHMARK_TEMPLATE(BM_Barrier, BarrierType::kCentralStepCounterBarrier)
     ->ThreadRange(1, std::thread::hardware_concurrency())
     ->UseRealTime();
+
+}  // namespace
+}  // namespace modcncy
 
 BENCHMARK_MAIN();

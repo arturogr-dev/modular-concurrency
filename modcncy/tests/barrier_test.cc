@@ -14,29 +14,31 @@
 #include <thread>  // NOLINT(build/c++11)
 #include <vector>
 
+namespace modcncy {
+namespace {
+
 // =============================================================================
 TEST(BarrierCreationTest, CreateUnsupportedBarrier) {
   // Setup.
-  const auto unsupported_barrier_type = static_cast<modcncy::BarrierType>(42);
-  auto barrier = modcncy::Barrier::Create(unsupported_barrier_type);
+  const auto unsupported_barrier_type = static_cast<BarrierType>(42);
+  auto barrier = Barrier::Create(unsupported_barrier_type);
   // Barrier should not be instantiated.
   EXPECT_EQ(barrier, nullptr);
   // Teardown.
   delete barrier;
 }
 
-class BarrierBehaviorTest
-    : public testing::TestWithParam<modcncy::BarrierType> {};
+class BarrierBehaviorTest : public testing::TestWithParam<BarrierType> {};
 
 INSTANTIATE_TEST_SUITE_P(
     AllBarrierTypes, BarrierBehaviorTest,
-    testing::Values(modcncy::BarrierType::kCentralSenseCounterBarrier,
-                    modcncy::BarrierType::kCentralStepCounterBarrier));
+    testing::Values(BarrierType::kCentralSenseCounterBarrier,
+                    BarrierType::kCentralStepCounterBarrier));
 
 // =============================================================================
 TEST_P(BarrierBehaviorTest, CreateBarrier) {
   // Setup.
-  auto barrier = modcncy::Barrier::Create(/*type=*/GetParam());
+  auto barrier = Barrier::Create(/*type=*/GetParam());
   // Barrier should be instantiated successfully.
   EXPECT_NE(barrier, nullptr);
   // Teardown.
@@ -47,7 +49,7 @@ TEST_P(BarrierBehaviorTest, CreateBarrier) {
 TEST_P(BarrierBehaviorTest, SimpleReadBeforeWrite) {
   // Setup.
   const int num_threads = std::thread::hardware_concurrency();
-  auto barrier = modcncy::Barrier::Create(/*type=*/GetParam());
+  auto barrier = Barrier::Create(/*type=*/GetParam());
   EXPECT_NE(barrier, nullptr);
   std::mutex mutex;
   int counter = 0;  // Guarded by `mutex`.
@@ -89,7 +91,7 @@ TEST_P(BarrierBehaviorTest, SimpleReadBeforeWrite) {
 // =============================================================================
 TEST_P(BarrierBehaviorTest, SimpleReadAfterWrite) {
   // Setup.
-  auto barrier = modcncy::Barrier::Create(/*type=*/GetParam());
+  auto barrier = Barrier::Create(/*type=*/GetParam());
   EXPECT_NE(barrier, nullptr);
   int shared_variable = 0;  // Variable to protect.
   const int num_threads = std::thread::hardware_concurrency();
@@ -122,7 +124,7 @@ TEST_P(BarrierBehaviorTest, SimpleReadAfterWrite) {
 // =============================================================================
 TEST_P(BarrierBehaviorTest, ReadAfterWriteByPartialSums) {
   // Setup.
-  auto barrier = modcncy::Barrier::Create(/*type=*/GetParam());
+  auto barrier = Barrier::Create(/*type=*/GetParam());
   EXPECT_NE(barrier, nullptr);
   constexpr uint64_t size = 1000000;
   std::vector<uint64_t> data;
@@ -171,7 +173,7 @@ TEST_P(BarrierBehaviorTest, ReadAfterWriteByPartialSums) {
 // =============================================================================
 TEST_P(BarrierBehaviorTest, ReusableAndAdaptableBarrierBySortingSegments) {
   // Setup.
-  auto barrier = modcncy::Barrier::Create(/*type=*/GetParam());
+  auto barrier = Barrier::Create(/*type=*/GetParam());
   EXPECT_NE(barrier, nullptr);
   constexpr int size = 1000000;
   std::vector<int> data;
@@ -250,3 +252,6 @@ TEST_P(BarrierBehaviorTest, ReusableAndAdaptableBarrierBySortingSegments) {
   for (auto& thread : threads) thread.join();
   delete barrier;
 }
+
+}  // namespace
+}  // namespace modcncy
