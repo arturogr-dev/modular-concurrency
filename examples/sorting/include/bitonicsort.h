@@ -24,6 +24,10 @@
 //   + An OpenMP-based implementation. The concurrency model is delegated to the
 //     OpenMP runtime and its barrier synchronization primitive.
 //
+//   + A pthreads-based multithreaded implementation. The concurrency is handled
+//     via an explicit barrier synchronization primitive, where all threads wait
+//     until all others reach this same point (blocking).
+//
 //   + A non-blocking multithreaded implementation. Due to the regular memory
 //     access pattern that is exposed by the algorithm, it is possible to bypass
 //     the explicit use of a synchronization primitive (a barrier in this case).
@@ -40,6 +44,7 @@
 #ifndef EXAMPLES_SORTING_INCLUDE_BITONICSORT_H_
 #define EXAMPLES_SORTING_INCLUDE_BITONICSORT_H_
 
+#include <modcncy/barrier.h>
 #include <modcncy/wait_policy.h>
 #include <omp.h>
 
@@ -159,6 +164,76 @@ void parallel_ompbased(Iterator begin, Iterator end, size_t num_threads,
       }
     }
   }  // pragma omp parallel
+}
+
+// =============================================================================
+// Parallel pthreads segmented bitonicsort.
+template <typename Iterator>
+void parallel_pthreads(Iterator begin, Iterator end, size_t num_threads,
+                       size_t segment_size) {
+  // Setup.
+  const size_t data_size = end - begin;
+  const size_t num_segments = data_size / segment_size;
+
+  // Work to be done per thread.
+  auto thread_work = [](Iterator begin, size_t thread_index, size_t num_threads,
+                        size_t num_segments, size_t segment_size,
+                        modcncy::Barrier* barrier) {
+    // Setup.
+    const size_t num_segments_per_thread = num_segments / num_threads;
+    const size_t low_segment = thread_index * num_segments_per_thread;
+    const size_t high_segment = low_segment + num_segments_per_thread;
+    const size_t low_index = low_segment * segment_size;
+    const size_t high_index = high_segment * segment_size;
+    const size_t buffer_size = 2 * segment_size;
+    typedef typename std::iterator_traits<Iterator>::value_type value_type;
+    std::vector<value_type> buffer(buffer_size);
+
+    // Sort each indiviual segment.
+    for (size_t i = low_index; i < high_index; i += segment_size)
+      std::sort(begin + i, begin + i + segment_size);
+
+    // Bitonic merging network.
+    for (size_t k = 2; k <= num_segments; k <<= 1) {
+      for (size_t j = k >> 1; j > 0; j >>= 1) {
+        for (size_t i = low_segment; i < high_segment; ++i) {
+          const size_t ij = i ^ j;
+          if (i < ij) {
+            if ((i & k) == 0)
+              merge::Up(/*segment1=*/&*(begin + i * segment_size),
+                        /*segment2=*/&*(begin + ij * segment_size),
+                        /*buffer=*/buffer.data(),
+                        /*segment_size=*/segment_size);
+            else
+              merge::Dn(/*segment1=*/&*(begin + i * segment_size),
+                        /*segment2=*/&*(begin + ij * segment_size),
+                        /*buffer=*/buffer.data(),
+                        /*segment_size=*/segment_size);
+          }
+        }
+        barrier->Wait(num_threads);  // Barrier synchronization.
+      }
+    }
+  };  // function thread_work
+
+  modcncy::Barrier* barrier = modcncy::Barrier::Create(
+      modcncy::BarrierType::kCentralSenseCounterBarrier);
+
+  // Launch threads.
+  // Main thread also performs work as thread 0, so loops starts in index 1.
+  std::vector<std::thread> threads;
+  threads.reserve(num_threads - 1);
+  for (size_t i = 1; i < num_threads; ++i) {
+    threads.push_back(std::thread(thread_work, begin, /*thread_index=*/i,
+                                  num_threads, num_segments, segment_size,
+                                  barrier));
+  }
+  thread_work(begin, /*thread_index=*/0, num_threads, num_segments,
+              segment_size, barrier);
+
+  // Join threads.
+  // So main thread can acquire the last published changes of the other threads.
+  for (auto& thread : threads) thread.join();
 }
 
 // =============================================================================

@@ -82,6 +82,7 @@ size_t get_barrier_stages(size_t num_segments, SortType sort_type) {
     case SortType::kSegmentedBitonicsort:
       return 0;
     case SortType::kOmpBasedBitonicsort:
+    case SortType::kPthreadsBitonicsort:
     case SortType::kNonBlockingBitonicsort:
       return (log2(num_segments) * (log2(num_segments) + 1)) / 2;
     case SortType::kGnuMultiwayMergesort:
@@ -151,6 +152,9 @@ BENCHMARK_TEMPLATE(BM_Sort, int32_t, SortType::kSegmentedBitonicsort)
 BENCHMARK_TEMPLATE(BM_Sort, int32_t, SortType::kOmpBasedBitonicsort)
     ->Unit(benchmark::kMillisecond)
     ->UseRealTime();
+BENCHMARK_TEMPLATE(BM_Sort, int32_t, SortType::kPthreadsBitonicsort)
+    ->Unit(benchmark::kMillisecond)
+    ->UseRealTime();
 BENCHMARK_TEMPLATE(BM_Sort, int32_t, SortType::kNonBlockingBitonicsort)
     ->Unit(benchmark::kMillisecond)
     ->UseRealTime();
@@ -167,6 +171,9 @@ BENCHMARK_TEMPLATE(BM_Sort, int64_t, SortType::kSegmentedBitonicsort)
     ->Unit(benchmark::kMillisecond)
     ->UseRealTime();
 BENCHMARK_TEMPLATE(BM_Sort, int64_t, SortType::kOmpBasedBitonicsort)
+    ->Unit(benchmark::kMillisecond)
+    ->UseRealTime();
+BENCHMARK_TEMPLATE(BM_Sort, int64_t, SortType::kPthreadsBitonicsort)
     ->Unit(benchmark::kMillisecond)
     ->UseRealTime();
 BENCHMARK_TEMPLATE(BM_Sort, int64_t, SortType::kNonBlockingBitonicsort)

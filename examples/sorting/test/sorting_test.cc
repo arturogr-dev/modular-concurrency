@@ -18,6 +18,7 @@ INSTANTIATE_TEST_SUITE_P(AllSortingTypes, SortingCorrectnessTest,
                                          SortType::kOriginalBitonicsort,
                                          SortType::kSegmentedBitonicsort,
                                          SortType::kOmpBasedBitonicsort,
+                                         SortType::kPthreadsBitonicsort,
                                          SortType::kNonBlockingBitonicsort,
                                          SortType::kGnuMultiwayMergesort));
 

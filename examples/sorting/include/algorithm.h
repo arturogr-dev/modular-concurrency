@@ -22,8 +22,9 @@ enum class SortType {
   kOriginalBitonicsort = 1,     // Sequential original bitonicsort.
   kSegmentedBitonicsort = 2,    // Sequential segmented bitonicsort.
   kOmpBasedBitonicsort = 3,     // Parallel OpenMP segmented bitonicsort.
-  kNonBlockingBitonicsort = 4,  // Parallel non-blocking segmented bitonicsort.
-  kGnuMultiwayMergesort = 5,    // Parallel C++ standard library GNU mergesort.
+  kPthreadsBitonicsort = 4,     // Parallel blocking segmented bitonicsort.
+  kNonBlockingBitonicsort = 5,  // Parallel non-blocking segmented bitonicsort.
+  kGnuMultiwayMergesort = 6,    // Parallel C++ standard library GNU mergesort.
 };
 
 // =============================================================================
@@ -44,6 +45,9 @@ void sort(Iterator begin, Iterator end, SortType sort_type = SortType::kStdSort,
       break;
     case SortType::kOmpBasedBitonicsort:
       bitonicsort::parallel_ompbased(begin, end, num_threads, segment_size);
+      break;
+    case SortType::kPthreadsBitonicsort:
+      bitonicsort::parallel_pthreads(begin, end, num_threads, segment_size);
       break;
     case SortType::kNonBlockingBitonicsort:
       bitonicsort::parallel_nonblocking(begin, end, num_threads, segment_size);
