@@ -103,7 +103,7 @@ std::string get_label(size_t data_size, size_t segment_size, size_t num_threads,
   return std::to_string(data_in_bytes / 1024) + " [kB] data | " +
          std::to_string(segment_in_bytes) + " [bytes] segment | " +
          std::to_string(num_segments) + " segments | " +
-         std::to_string(barrier_stages) + " barrier stages | " +
+         std::to_string(barrier_stages) + " stages | " +
          std::to_string(num_threads) + " threads ";
 }
 

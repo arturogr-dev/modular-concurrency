@@ -193,6 +193,8 @@ void parallel_pthreads(Iterator begin, Iterator end, size_t num_threads,
     for (size_t i = low_index; i < high_index; i += segment_size)
       std::sort(begin + i, begin + i + segment_size);
 
+    barrier->Wait(num_threads);  // Barrier synchronization.
+
     // Bitonic merging network.
     for (size_t k = 2; k <= num_segments; k <<= 1) {
       for (size_t j = k >> 1; j > 0; j >>= 1) {
