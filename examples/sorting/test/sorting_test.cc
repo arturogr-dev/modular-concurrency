@@ -2,11 +2,11 @@
 // Use of this source code is governed by the license found in the LICENSE file.
 // -----------------------------------------------------------------------------
 
-#include "examples/sorting/include/sorting.h"
-
 #include <gtest/gtest.h>
 
 #include <vector>
+
+#include "examples/sorting/include/algorithm.h"
 
 namespace sorting {
 namespace {

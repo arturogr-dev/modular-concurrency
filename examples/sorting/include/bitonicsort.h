@@ -124,7 +124,7 @@ void parallel_ompbased(Iterator begin, Iterator end, size_t num_threads,
   omp_set_dynamic(0);
   omp_set_num_threads(num_threads);
 
-#pragma omp parallel
+  #pragma omp parallel
   {
     const size_t data_size = end - begin;
     const size_t num_segments = data_size / segment_size;
@@ -133,14 +133,14 @@ void parallel_ompbased(Iterator begin, Iterator end, size_t num_threads,
     std::vector<value_type> buffer(buffer_size);
 
     // Sort each indiviual segment.
-#pragma omp for
+    #pragma omp for
     for (size_t i = 0; i < data_size; i += segment_size)
       std::sort(begin + i, begin + i + segment_size);
 
     // Bitonic merging network.
     for (size_t k = 2; k <= num_segments; k <<= 1) {
       for (size_t j = k >> 1; j > 0; j >>= 1) {
-#pragma omp for
+        #pragma omp for
         for (size_t i = 0; i < num_segments; ++i) {
           const size_t ij = i ^ j;
           if (i < ij) {

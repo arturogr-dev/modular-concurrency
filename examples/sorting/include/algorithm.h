@@ -2,12 +2,12 @@
 // Use of this source code is governed by the license found in the LICENSE file.
 // -----------------------------------------------------------------------------
 //
-// Supported sorting algorithms.
+// Sorting implementations.
 //
 // -----------------------------------------------------------------------------
 
-#ifndef EXAMPLES_SORTING_INCLUDE_SORTING_H_
-#define EXAMPLES_SORTING_INCLUDE_SORTING_H_
+#ifndef EXAMPLES_SORTING_INCLUDE_ALGORITHM_H_
+#define EXAMPLES_SORTING_INCLUDE_ALGORITHM_H_
 
 #include <algorithm>
 #include <parallel/algorithm>  // NOLINT(build/include_order)
@@ -57,4 +57,4 @@ void sort(Iterator begin, Iterator end, SortType sort_type = SortType::kStdSort,
 
 }  // namespace sorting
 
-#endif  // EXAMPLES_SORTING_INCLUDE_SORTING_H_
+#endif  // EXAMPLES_SORTING_INCLUDE_ALGORITHM_H_
