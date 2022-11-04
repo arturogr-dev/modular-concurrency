@@ -79,18 +79,18 @@ std::string get_label(size_t size, size_t num_threads) {
 
 // =============================================================================
 // Benchmark: Matrix multiplication.
-template <typename T, MultiplyType MulType>
+template <typename T, MultiplyType mult_type>
 void BM_MatMul(benchmark::State& state) {  // NOLINT(runtime/references)
   // Setup.
   const size_t size = 1 << FLAGS_input_shift;
-  const size_t num_threads = is_sequential(MulType) ? 1 : FLAGS_num_threads;
+  const size_t num_threads = is_sequential(mult_type) ? 1 : FLAGS_num_threads;
   const std::vector<std::vector<T>> A = get_matrix<T>(size);
   const std::vector<std::vector<T>> B = get_matrix<T>(size);
   std::vector<std::vector<T>> C;
 
   // Benchmark.
   for (auto _ : state) {
-    C = multiply(A, B, MulType, num_threads);
+    C = multiply(A, B, mult_type, num_threads);
   }
 
   // Teardown.
