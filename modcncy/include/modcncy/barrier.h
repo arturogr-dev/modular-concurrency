@@ -21,6 +21,10 @@
 #ifndef MODCNCY_INCLUDE_MODCNCY_BARRIER_H_
 #define MODCNCY_INCLUDE_MODCNCY_BARRIER_H_
 
+#include <functional>
+
+#include "modcncy/wait_policy.h"
+
 namespace modcncy {
 
 // Supported barriers.
@@ -38,7 +42,9 @@ class Barrier {
   virtual ~Barrier() {}
 
   // Blocks current thread until the last of `num_threads` reaches this point.
-  virtual void Wait(int num_threads) = 0;
+  // All threads at the barrier wait with the applied `policy`.
+  virtual void Wait(int num_threads,
+                    std::function<void()> policy = &cpu_yield) = 0;
 };  // class Barrier
 
 }  // namespace modcncy

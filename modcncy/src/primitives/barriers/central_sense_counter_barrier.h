@@ -30,7 +30,7 @@ namespace primitives {
 class CentralSenseCounterBarrier : public Barrier {
  public:
   // A thread must wait here until all threads reach this point.
-  void Wait(int num_threads) override;
+  void Wait(int num_threads, std::function<void()> policy) override;
 
  private:
   // Number of threads spinning at the barrier.

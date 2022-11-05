@@ -10,12 +10,13 @@ namespace modcncy {
 namespace primitives {
 
 // =============================================================================
-void CentralStepCounterBarrier::Wait(int num_threads) {
+void CentralStepCounterBarrier::Wait(int num_threads,
+                                     std::function<void()> policy) {
   const unsigned current_step = step_.load(std::memory_order_relaxed);
   if (spinning_threads_.fetch_add(1, std::memory_order_acq_rel) <
       num_threads - 1) {
     // Wait until last thread arrives.
-    while (step_.load(std::memory_order_acquire) == current_step) cpu_yield();
+    while (step_.load(std::memory_order_acquire) == current_step) policy();
   } else {
     // Last thread enters the barrier.
     // Reset number of spinning threads and increase the step.

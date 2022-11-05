@@ -4,18 +4,17 @@
 
 #include "modcncy/src/primitives/barriers/central_sense_counter_barrier.h"
 
-#include "modcncy/include/modcncy/wait_policy.h"
-
 namespace modcncy {
 namespace primitives {
 
 // =============================================================================
-void CentralSenseCounterBarrier::Wait(int num_threads) {
+void CentralSenseCounterBarrier::Wait(int num_threads,
+                                      std::function<void()> policy) {
   const unsigned my_sense = sense_.load(std::memory_order_relaxed);
   if (spinning_threads_.fetch_add(1, std::memory_order_acq_rel) <
       num_threads - 1) {
     // Wait until last thread arrives.
-    while (sense_.load(std::memory_order_acquire) == my_sense) cpu_yield();
+    while (sense_.load(std::memory_order_acquire) == my_sense) policy();
   } else {
     // Last thread enters the barrier.
     // Reset number of spinning threads and toggle the global sense.
