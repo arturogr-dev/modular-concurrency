@@ -236,6 +236,7 @@ void parallel_pthreads(Iterator begin, Iterator end, size_t num_threads,
   // Join threads.
   // So main thread can acquire the last published changes of the other threads.
   for (auto& thread : threads) thread.join();
+  delete barrier;
 }
 
 // =============================================================================
