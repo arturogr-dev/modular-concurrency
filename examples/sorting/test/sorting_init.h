@@ -17,6 +17,7 @@ namespace sorting {
 MODCNCY_DECLARE_int32(input_shift);
 MODCNCY_DECLARE_int32(segment_size);
 MODCNCY_DECLARE_int32(num_threads);
+MODCNCY_DECLARE_string(wait_policy);
 
 // =============================================================================
 // Parses the declared command line flags.
@@ -24,7 +25,8 @@ void ParseCommandLineFlags(int* argc, char** argv) {
   for (int i = 1; i < *argc; ++i) {
     if (modcncy::ParseInt32Flag(argv[i], "input_shift", &FLAGS_input_shift) ||
         modcncy::ParseInt32Flag(argv[i], "segment_size", &FLAGS_segment_size) ||
-        modcncy::ParseInt32Flag(argv[i], "num_threads", &FLAGS_num_threads)) {
+        modcncy::ParseInt32Flag(argv[i], "num_threads", &FLAGS_num_threads) ||
+        modcncy::ParseStringFlag(argv[i], "wait_policy", &FLAGS_wait_policy)) {
       for (int j = i; j != *argc - 1; ++j) argv[j] = argv[j + 1];
       --(*argc);
       --i;

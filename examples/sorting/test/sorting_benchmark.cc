@@ -25,10 +25,12 @@
 // -----------------------------------------------------------------------------
 
 #include <benchmark/benchmark.h>
+#include <modcncy/wait_policy.h>
 
 #include <algorithm>
 #include <cassert>
 #include <cstdint>
+#include <functional>
 #include <random>
 #include <string>
 #include <thread>  // NOLINT(build/c++11)
@@ -49,6 +51,9 @@ MODCNCY_DEFINE_int32(segment_size, 1024);
 
 // Number of threads to be launched for the different parallel implementations.
 MODCNCY_DEFINE_int32(num_threads, std::thread::hardware_concurrency());
+
+// Waiting policy for threads spinning at a barrier synchronization primitive.
+MODCNCY_DEFINE_string(wait_policy, "cpu_yield");
 
 namespace {
 
@@ -74,6 +79,21 @@ bool is_sequential(SortType sort_type) {
 }
 
 // =============================================================================
+std::function<void()> get_wait_policy(const std::string& policy) {
+  if (policy == "cpu_no_op") return &modcncy::cpu_no_op;
+  if (policy == "cpu_yield") return &modcncy::cpu_yield;
+  if (policy == "cpu_pause") return &modcncy::cpu_pause;
+  return &modcncy::cpu_yield;
+}
+
+// =============================================================================
+std::string get_wait_policy_label(const std::string& policy) {
+  if (policy == "cpu_no_op" || policy == "cpu_yield" || policy == "cpu_pause")
+    return policy;
+  return "cpu_yield";
+}
+
+// =============================================================================
 // Returns the number of times a thread hits a barrier synchronization point.
 size_t get_barrier_stages(size_t num_segments, SortType sort_type) {
   switch (sort_type) {
@@ -95,7 +115,7 @@ size_t get_barrier_stages(size_t num_segments, SortType sort_type) {
 // Returns the label to be printed in each benchmark.
 template <typename T>
 std::string get_label(size_t data_size, size_t segment_size, size_t num_threads,
-                      SortType sort_type) {
+                      SortType sort_type, const std::string& policy) {
   const size_t data_in_bytes = data_size * sizeof(T);
   const size_t segment_in_bytes = segment_size * sizeof(T);
   const size_t num_segments = data_size / segment_size;
@@ -104,7 +124,8 @@ std::string get_label(size_t data_size, size_t segment_size, size_t num_threads,
          std::to_string(segment_in_bytes) + " [bytes] segment | " +
          std::to_string(num_segments) + " segments | " +
          std::to_string(barrier_stages) + " stages | " +
-         std::to_string(num_threads) + " threads ";
+         std::to_string(num_threads) + " threads | " +
+         get_wait_policy_label(policy) + " policy";
 }
 
 // =============================================================================
@@ -115,6 +136,7 @@ void BM_Sort(benchmark::State& state) {  // NOLINT(runtime/references)
   const size_t data_size = 1 << FLAGS_input_shift;
   const size_t segment_size = FLAGS_segment_size;
   const size_t num_threads = is_sequential(sort_type) ? 1 : FLAGS_num_threads;
+  std::function<void()> wait_policy = get_wait_policy(FLAGS_wait_policy);
   std::vector<T> data(data_size);
   for (size_t i = 0; i < data_size; ++i) data[i] = static_cast<T>(i);
   std::random_device rand_dev;
@@ -135,7 +157,8 @@ void BM_Sort(benchmark::State& state) {  // NOLINT(runtime/references)
   }
 
   // Teardown.
-  state.SetLabel(get_label<T>(data_size, segment_size, num_threads, sort_type));
+  state.SetLabel(get_label<T>(data_size, segment_size, num_threads, sort_type,
+                              FLAGS_wait_policy));
   state.SetBytesProcessed(state.iterations() * data_size * sizeof(T));
 }
 
