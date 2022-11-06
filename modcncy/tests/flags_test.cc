@@ -44,5 +44,18 @@ TEST(Int32FromEnvTest, MaxValidInteger) {
   unsetenv("IN_ENV");
 }
 
+// =============================================================================
+TEST(StringFromEnvTest, Default) {
+  ASSERT_EQ(unsetenv("NOT_IN_ENV"), 0);
+  EXPECT_STREQ(StringFromEnv("not_in_env", "foo"), "foo");
+}
+
+// =============================================================================
+TEST(StringFromEnvTest, Valid) {
+  ASSERT_EQ(setenv("IN_ENV", "foo", 1), 0);
+  EXPECT_STREQ(StringFromEnv("in_env", "bar"), "foo");
+  unsetenv("IN_ENV");
+}
+
 }  // namespace
 }  // namespace modcncy

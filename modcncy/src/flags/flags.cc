@@ -94,4 +94,22 @@ bool ParseInt32Flag(const char* str, const char* flag, int32_t* value) {
   return ParseInt32(std::string("Value of flag --") + flag, value_str, value);
 }
 
+// =============================================================================
+const char* StringFromEnv(const char* flag, const char* default_value) {
+  const std::string env_var = FlagToEnvVar(flag);
+  const char* const value = getenv(env_var.c_str());
+  return value == nullptr ? default_value : value;
+}
+
+// =============================================================================
+bool ParseStringFlag(const char* str, const char* flag, std::string* value) {
+  // Get value of the flag as a string.
+  const char* const value_str = ParseFlagValue(str, flag);
+  // Abort if the parsing failed.
+  if (value_str == nullptr) return false;
+  // Set `*value` to the value of the flag.
+  *value = value_str;
+  return true;
+}
+
 }  // namespace modcncy
