@@ -58,19 +58,6 @@ MODCNCY_DEFINE_string(wait_policy, "cpu_yield");
 namespace {
 
 // =============================================================================
-// Computes the logarithm base 2 of a power of 2.
-size_t log2(size_t x) { return __builtin_ctz(x); }
-
-// =============================================================================
-// Verifies if the data is sorted.
-template <typename T>
-bool is_sorted(const std::vector<T>& data) {
-  for (size_t i = 1; i < data.size(); ++i)
-    if (data[i - 1] > data[i]) return false;
-  return true;
-}
-
-// =============================================================================
 // Verifies if a sequential implementation is executed.
 bool is_sequential(SortType sort_type) {
   return sort_type == SortType::kSequentialStdSort ||
@@ -79,55 +66,50 @@ bool is_sequential(SortType sort_type) {
 }
 
 // =============================================================================
-std::function<void()> get_wait_policy(const std::string& policy) {
-  if (policy == "cpu_no_op") return &modcncy::cpu_no_op;
-  if (policy == "cpu_yield") return &modcncy::cpu_yield;
-  if (policy == "cpu_pause") return &modcncy::cpu_pause;
-  return &modcncy::cpu_yield;
+// Verifies if a bitonicsort implementation is executed.
+bool is_bitonicsort(SortType sort_type) {
+  return sort_type == SortType::kSequentialOriginalBitonicsort ||
+         sort_type == SortType::kSequentialSegmentedBitonicsort ||
+         sort_type == SortType::kParallelOmpBasedBitonicsort ||
+         sort_type == SortType::kParallelPthreadsBitonicsort ||
+         sort_type == SortType::kParallelNonBlockingBitonicsort;
 }
 
 // =============================================================================
-std::string get_wait_policy_label(const std::string& policy) {
+// Computes the logarithm base 2 of a power of 2.
+size_t log2(size_t x) { return __builtin_ctz(x); }
+
+// =============================================================================
+// Returns the number of stages/phases in the algorithm.
+std::string algorithm_stages_label(size_t num_segments, SortType sort_type) {
+  if (is_bitonicsort(sort_type))
+    return std::to_string((log2(num_segments) * (log2(num_segments) + 1)) / 2);
+  return "N/A";  // TODO(arturogr-dev): Check others to get this right.
+}
+
+// =============================================================================
+// Returns the applied wait policy.
+std::string wait_policy_label(const std::string& policy) {
   if (policy == "cpu_no_op" || policy == "cpu_yield" || policy == "cpu_pause")
     return policy;
   return "cpu_yield";
 }
 
 // =============================================================================
-// Returns the number of times a thread hits a barrier synchronization point.
-size_t get_barrier_stages(size_t num_segments, SortType sort_type) {
-  switch (sort_type) {
-    case SortType::kSequentialStdSort:
-    case SortType::kSequentialOriginalBitonicsort:
-    case SortType::kSequentialSegmentedBitonicsort:
-      return 0;
-    case SortType::kParallelOmpBasedBitonicsort:
-    case SortType::kParallelPthreadsBitonicsort:
-    case SortType::kParallelNonBlockingBitonicsort:
-      return (log2(num_segments) * (log2(num_segments) + 1)) / 2;
-    case SortType::kParallelGnuMultiwayMergesort:
-    case SortType::kParallelGnuQuicksort:
-    case SortType::kParallelGnuBalancedQuicksort:
-      return 0;  // TODO(arturogr-dev): Check implementation to get this right.
-  }
-  return 0;
+// Verifies if the data is sorted in non-descending order.
+template <typename T>
+bool IsSorted(const std::vector<T>& data) {
+  for (size_t i = 1; i < data.size(); ++i)
+    if (data[i - 1] > data[i]) return false;
+  return true;
 }
 
 // =============================================================================
-// Returns the label to be printed in each benchmark.
-template <typename T>
-std::string get_label(size_t data_size, size_t segment_size, size_t num_threads,
-                      SortType sort_type, const std::string& policy) {
-  const size_t data_in_bytes = data_size * sizeof(T);
-  const size_t segment_in_bytes = segment_size * sizeof(T);
-  const size_t num_segments = data_size / segment_size;
-  const int barrier_stages = get_barrier_stages(num_segments, sort_type);
-  return std::to_string(data_in_bytes / 1024) + " [kB] data | " +
-         std::to_string(segment_in_bytes) + " [bytes] segment | " +
-         std::to_string(num_segments) + " segments | " +
-         std::to_string(barrier_stages) + " stages | " +
-         std::to_string(num_threads) + " threads | " +
-         get_wait_policy_label(policy) + " policy";
+std::function<void()> GetWaitPolicy(const std::string& policy) {
+  if (policy == "cpu_no_op") return &modcncy::cpu_no_op;
+  if (policy == "cpu_yield") return &modcncy::cpu_yield;
+  if (policy == "cpu_pause") return &modcncy::cpu_pause;
+  return &modcncy::cpu_yield;
 }
 
 // =============================================================================
@@ -137,14 +119,15 @@ void BM_Sort(benchmark::State& state) {  // NOLINT(runtime/references)
   // Setup.
   const size_t data_size = 1 << FLAGS_input_shift;
   const size_t segment_size = FLAGS_segment_size;
+  const size_t num_segments = data_size / segment_size;
   const size_t num_threads = is_sequential(sort_type) ? 1 : FLAGS_num_threads;
-  std::function<void()> wait_policy = get_wait_policy(FLAGS_wait_policy);
+  std::function<void()> wait_policy = GetWaitPolicy(FLAGS_wait_policy);
   std::vector<T> data(data_size);
   for (size_t i = 0; i < data_size; ++i) data[i] = static_cast<T>(i);
   std::random_device rand_dev;
   std::mt19937 rand_gen(rand_dev());
   std::shuffle(data.begin(), data.end(), rand_gen);
-  assert(!is_sorted(data) && "Data should not be sorted");
+  assert(!IsSorted(data) && "Data should not be sorted after shuffle");
 
   // Benchmark.
   for (auto _ : state) {
@@ -153,15 +136,20 @@ void BM_Sort(benchmark::State& state) {  // NOLINT(runtime/references)
 
     // Prepare for next iteration.
     state.PauseTiming();
-    assert(is_sorted(data) && "Data should be sorted");
+    assert(IsSorted(data) && "Data should be sorted");
     std::shuffle(data.begin(), data.end(), rand_gen);
-    assert(!is_sorted(data) && "Data should not be sorted");
+    assert(!IsSorted(data) && "Data should not be sorted after shuffle");
     state.ResumeTiming();
   }
 
   // Teardown.
-  state.SetLabel(get_label<T>(data_size, segment_size, num_threads, sort_type,
-                              FLAGS_wait_policy));
+  state.SetLabel(
+      std::to_string(data_size * sizeof(T) / 1024) + " [kB] data | " +
+      std::to_string(segment_size * sizeof(T)) + " [bytes] segment | " +
+      std::to_string(num_segments) + " num_segments | " +
+      std::to_string(num_threads) + " num_threads | " +
+      algorithm_stages_label(num_segments, sort_type) + " algorithm-stages | " +
+      wait_policy_label(FLAGS_wait_policy) + " wait-policy");
   state.SetBytesProcessed(state.iterations() * data_size * sizeof(T));
 }
 
