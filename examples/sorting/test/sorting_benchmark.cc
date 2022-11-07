@@ -106,6 +106,8 @@ size_t get_barrier_stages(size_t num_segments, SortType sort_type) {
     case SortType::kParallelNonBlockingBitonicsort:
       return (log2(num_segments) * (log2(num_segments) + 1)) / 2;
     case SortType::kParallelGnuMultiwayMergesort:
+    case SortType::kParallelGnuQuicksort:
+    case SortType::kParallelGnuBalancedQuicksort:
       return 0;  // TODO(arturogr-dev): Check implementation to get this right.
   }
   return 0;
@@ -185,6 +187,12 @@ BENCHMARK_TEMPLATE(BM_Sort, int32_t, SortType::kParallelNonBlockingBitonicsort)
 BENCHMARK_TEMPLATE(BM_Sort, int32_t, SortType::kParallelGnuMultiwayMergesort)
     ->Unit(benchmark::kMillisecond)
     ->UseRealTime();
+BENCHMARK_TEMPLATE(BM_Sort, int32_t, SortType::kParallelGnuQuicksort)
+    ->Unit(benchmark::kMillisecond)
+    ->UseRealTime();
+BENCHMARK_TEMPLATE(BM_Sort, int32_t, SortType::kParallelGnuBalancedQuicksort)
+    ->Unit(benchmark::kMillisecond)
+    ->UseRealTime();
 BENCHMARK_TEMPLATE(BM_Sort, int64_t, SortType::kSequentialStdSort)
     ->Unit(benchmark::kMillisecond)
     ->UseRealTime();
@@ -204,6 +212,12 @@ BENCHMARK_TEMPLATE(BM_Sort, int64_t, SortType::kParallelNonBlockingBitonicsort)
     ->Unit(benchmark::kMillisecond)
     ->UseRealTime();
 BENCHMARK_TEMPLATE(BM_Sort, int64_t, SortType::kParallelGnuMultiwayMergesort)
+    ->Unit(benchmark::kMillisecond)
+    ->UseRealTime();
+BENCHMARK_TEMPLATE(BM_Sort, int64_t, SortType::kParallelGnuQuicksort)
+    ->Unit(benchmark::kMillisecond)
+    ->UseRealTime();
+BENCHMARK_TEMPLATE(BM_Sort, int64_t, SortType::kParallelGnuBalancedQuicksort)
     ->Unit(benchmark::kMillisecond)
     ->UseRealTime();
 

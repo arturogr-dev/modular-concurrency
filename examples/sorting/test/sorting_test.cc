@@ -21,7 +21,9 @@ INSTANTIATE_TEST_SUITE_P(
                     SortType::kParallelOmpBasedBitonicsort,
                     SortType::kParallelPthreadsBitonicsort,
                     SortType::kParallelNonBlockingBitonicsort,
-                    SortType::kParallelGnuMultiwayMergesort));
+                    SortType::kParallelGnuMultiwayMergesort,
+                    SortType::kParallelGnuQuicksort,
+                    SortType::kParallelGnuBalancedQuicksort));
 
 // =============================================================================
 TEST_P(SortingCorrectnessTest, Sort32BitInts) {

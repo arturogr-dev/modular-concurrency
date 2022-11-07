@@ -21,13 +21,15 @@ namespace sorting {
 
 // Supported execution policies.
 enum class SortType {
-  kSequentialStdSort = 0,               // C++ standard library sort.
+  kSequentialStdSort = 0,               // C++ stdlib sort.
   kSequentialOriginalBitonicsort = 1,   // Original bitonicsort.
   kSequentialSegmentedBitonicsort = 2,  // Segmented bitonicsort.
   kParallelOmpBasedBitonicsort = 3,     // OpenMP-based segmented bitonicsort.
   kParallelPthreadsBitonicsort = 4,     // Barrier-based segmented bitonicsort.
   kParallelNonBlockingBitonicsort = 5,  // Non-blocking segmented bitonicsort.
-  kParallelGnuMultiwayMergesort = 6,    // C++ standard library GNU mergesort.
+  kParallelGnuMultiwayMergesort = 6,    // C++ stdlib GNU mergesort.
+  kParallelGnuQuicksort = 7,            // C++ stdlib GNU quicksort.
+  kParallelGnuBalancedQuicksort = 8,    // C++ stdlib GNU balanced quicksort.
 };
 
 // =============================================================================
@@ -62,6 +64,14 @@ void sort(Iterator begin, Iterator end,
     case SortType::kParallelGnuMultiwayMergesort:
       __gnu_parallel::sort(begin, end,
                            __gnu_parallel::multiway_mergesort_tag(num_threads));
+      break;
+    case SortType::kParallelGnuQuicksort:
+      __gnu_parallel::sort(begin, end,
+                           __gnu_parallel::quicksort_tag(num_threads));
+      break;
+    case SortType::kParallelGnuBalancedQuicksort:
+      __gnu_parallel::sort(begin, end,
+                           __gnu_parallel::balanced_quicksort_tag(num_threads));
       break;
   }
 }
