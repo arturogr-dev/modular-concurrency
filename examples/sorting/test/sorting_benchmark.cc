@@ -146,7 +146,8 @@ void BM_Sort(benchmark::State& state) {  // NOLINT(runtime/references)
 
   // Benchmark.
   for (auto _ : state) {
-    sort(data.begin(), data.end(), sort_type, num_threads, segment_size);
+    sort(data.begin(), data.end(), sort_type, num_threads, segment_size,
+         wait_policy);
 
     // Prepare for next iteration.
     state.PauseTiming();

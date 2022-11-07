@@ -50,6 +50,7 @@
 
 #include <algorithm>
 #include <atomic>
+#include <functional>
 #include <iterator>
 #include <thread>  // NOLINT(build/c++11)
 #include <utility>
@@ -169,8 +170,9 @@ void parallel_ompbased(Iterator begin, Iterator end, size_t num_threads,
 // =============================================================================
 // Parallel pthreads segmented bitonicsort.
 template <typename Iterator>
-void parallel_pthreads(Iterator begin, Iterator end, size_t num_threads,
-                       size_t segment_size) {
+void parallel_pthreads(
+    Iterator begin, Iterator end, size_t num_threads, size_t segment_size,
+    std::function<void()> wait_policy = &modcncy::cpu_yield) {
   // Setup.
   const size_t data_size = end - begin;
   const size_t num_segments = data_size / segment_size;
@@ -178,6 +180,7 @@ void parallel_pthreads(Iterator begin, Iterator end, size_t num_threads,
   // Work to be done per thread.
   auto thread_work = [](Iterator begin, size_t thread_index, size_t num_threads,
                         size_t num_segments, size_t segment_size,
+                        std::function<void()> wait_policy,
                         modcncy::Barrier* barrier) {
     // Setup.
     const size_t num_segments_per_thread = num_segments / num_threads;
@@ -193,7 +196,7 @@ void parallel_pthreads(Iterator begin, Iterator end, size_t num_threads,
     for (size_t i = low_index; i < high_index; i += segment_size)
       std::sort(begin + i, begin + i + segment_size);
 
-    barrier->Wait(num_threads);  // Barrier synchronization.
+    barrier->Wait(num_threads, wait_policy);  // Barrier synchronization.
 
     // Bitonic merging network.
     for (size_t k = 2; k <= num_segments; k <<= 1) {
@@ -213,7 +216,7 @@ void parallel_pthreads(Iterator begin, Iterator end, size_t num_threads,
                         /*segment_size=*/segment_size);
           }
         }
-        barrier->Wait(num_threads);  // Barrier synchronization.
+        barrier->Wait(num_threads, wait_policy);  // Barrier synchronization.
       }
     }
   };  // function thread_work
@@ -228,10 +231,10 @@ void parallel_pthreads(Iterator begin, Iterator end, size_t num_threads,
   for (size_t i = 1; i < num_threads; ++i) {
     threads.push_back(std::thread(thread_work, begin, /*thread_index=*/i,
                                   num_threads, num_segments, segment_size,
-                                  barrier));
+                                  wait_policy, barrier));
   }
   thread_work(begin, /*thread_index=*/0, num_threads, num_segments,
-              segment_size, barrier);
+              segment_size, wait_policy, barrier);
 
   // Join threads.
   // So main thread can acquire the last published changes of the other threads.
@@ -242,8 +245,9 @@ void parallel_pthreads(Iterator begin, Iterator end, size_t num_threads,
 // =============================================================================
 // Parallel non-blocking segmented bitonicsort.
 template <typename Iterator>
-void parallel_nonblocking(Iterator begin, Iterator end, size_t num_threads,
-                          size_t segment_size) {
+void parallel_nonblocking(
+    Iterator begin, Iterator end, size_t num_threads, size_t segment_size,
+    std::function<void()> wait_policy = &modcncy::cpu_yield) {
   // Setup.
   const size_t data_size = end - begin;
   const size_t num_segments = data_size / segment_size;
@@ -251,6 +255,7 @@ void parallel_nonblocking(Iterator begin, Iterator end, size_t num_threads,
   // Work to be done per thread.
   auto thread_work = [](Iterator begin, size_t thread_index, size_t num_threads,
                         size_t num_segments, size_t segment_size,
+                        std::function<void()> wait_policy,
                         std::vector<std::atomic<size_t>>* segment_stage_count) {
     // Setup.
     const size_t num_segments_per_thread = num_segments / num_threads;
@@ -287,9 +292,9 @@ void parallel_nonblocking(Iterator begin, Iterator end, size_t num_threads,
 
             // Wait until the segments I need are on my same stage.
             while (my_stage != (*segment_stage_count)[segment1_id].load())
-              modcncy::cpu_yield();
+              wait_policy();
             while (my_stage != (*segment_stage_count)[segment2_id].load())
-              modcncy::cpu_yield();
+              wait_policy();
 
             if ((i & k) == 0)
               merge::Up(/*segment1=*/&*(begin + segment1_index),
@@ -324,10 +329,10 @@ void parallel_nonblocking(Iterator begin, Iterator end, size_t num_threads,
   for (size_t i = 1; i < num_threads; ++i) {
     threads.push_back(std::thread(thread_work, begin, /*thread_index=*/i,
                                   num_threads, num_segments, segment_size,
-                                  &segment_stage_count));
+                                  wait_policy, &segment_stage_count));
   }
   thread_work(begin, /*thread_index=*/0, num_threads, num_segments,
-              segment_size, &segment_stage_count);
+              segment_size, wait_policy, &segment_stage_count);
 
   // Join threads.
   // So main thread can acquire the last published changes of the other threads.
