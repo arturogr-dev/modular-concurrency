@@ -13,14 +13,15 @@ namespace {
 
 class SortingCorrectnessTest : public testing::TestWithParam<SortType> {};
 
-INSTANTIATE_TEST_SUITE_P(AllSortingTypes, SortingCorrectnessTest,
-                         testing::Values(SortType::kStdSort,
-                                         SortType::kOriginalBitonicsort,
-                                         SortType::kSegmentedBitonicsort,
-                                         SortType::kOmpBasedBitonicsort,
-                                         SortType::kPthreadsBitonicsort,
-                                         SortType::kNonBlockingBitonicsort,
-                                         SortType::kGnuMultiwayMergesort));
+INSTANTIATE_TEST_SUITE_P(
+    AllSortingTypes, SortingCorrectnessTest,
+    testing::Values(SortType::kSequentialStdSort,
+                    SortType::kSequentialOriginalBitonicsort,
+                    SortType::kSequentialSegmentedBitonicsort,
+                    SortType::kParallelOmpBasedBitonicsort,
+                    SortType::kParallelPthreadsBitonicsort,
+                    SortType::kParallelNonBlockingBitonicsort,
+                    SortType::kParallelGnuMultiwayMergesort));
 
 // =============================================================================
 TEST_P(SortingCorrectnessTest, Sort32BitInts) {

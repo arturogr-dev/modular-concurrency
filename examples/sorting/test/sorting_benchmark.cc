@@ -73,9 +73,9 @@ bool is_sorted(const std::vector<T>& data) {
 // =============================================================================
 // Verifies if a sequential implementation is executed.
 bool is_sequential(SortType sort_type) {
-  return sort_type == SortType::kStdSort ||
-         sort_type == SortType::kOriginalBitonicsort ||
-         sort_type == SortType::kSegmentedBitonicsort;
+  return sort_type == SortType::kSequentialStdSort ||
+         sort_type == SortType::kSequentialOriginalBitonicsort ||
+         sort_type == SortType::kSequentialSegmentedBitonicsort;
 }
 
 // =============================================================================
@@ -97,15 +97,15 @@ std::string get_wait_policy_label(const std::string& policy) {
 // Returns the number of times a thread hits a barrier synchronization point.
 size_t get_barrier_stages(size_t num_segments, SortType sort_type) {
   switch (sort_type) {
-    case SortType::kStdSort:
-    case SortType::kOriginalBitonicsort:
-    case SortType::kSegmentedBitonicsort:
+    case SortType::kSequentialStdSort:
+    case SortType::kSequentialOriginalBitonicsort:
+    case SortType::kSequentialSegmentedBitonicsort:
       return 0;
-    case SortType::kOmpBasedBitonicsort:
-    case SortType::kPthreadsBitonicsort:
-    case SortType::kNonBlockingBitonicsort:
+    case SortType::kParallelOmpBasedBitonicsort:
+    case SortType::kParallelPthreadsBitonicsort:
+    case SortType::kParallelNonBlockingBitonicsort:
       return (log2(num_segments) * (log2(num_segments) + 1)) / 2;
-    case SortType::kGnuMultiwayMergesort:
+    case SortType::kParallelGnuMultiwayMergesort:
       return 0;  // TODO(arturogr-dev): Check implementation to get this right.
   }
   return 0;
@@ -164,46 +164,46 @@ void BM_Sort(benchmark::State& state) {  // NOLINT(runtime/references)
 }
 
 // Register benchmarks.
-BENCHMARK_TEMPLATE(BM_Sort, int32_t, SortType::kStdSort)
+BENCHMARK_TEMPLATE(BM_Sort, int32_t, SortType::kSequentialStdSort)
     ->Unit(benchmark::kMillisecond)
     ->UseRealTime();
-BENCHMARK_TEMPLATE(BM_Sort, int32_t, SortType::kOriginalBitonicsort)
+BENCHMARK_TEMPLATE(BM_Sort, int32_t, SortType::kSequentialOriginalBitonicsort)
     ->Unit(benchmark::kMillisecond)
     ->UseRealTime();
-BENCHMARK_TEMPLATE(BM_Sort, int32_t, SortType::kSegmentedBitonicsort)
+BENCHMARK_TEMPLATE(BM_Sort, int32_t, SortType::kSequentialSegmentedBitonicsort)
     ->Unit(benchmark::kMillisecond)
     ->UseRealTime();
-BENCHMARK_TEMPLATE(BM_Sort, int32_t, SortType::kOmpBasedBitonicsort)
+BENCHMARK_TEMPLATE(BM_Sort, int32_t, SortType::kParallelOmpBasedBitonicsort)
     ->Unit(benchmark::kMillisecond)
     ->UseRealTime();
-BENCHMARK_TEMPLATE(BM_Sort, int32_t, SortType::kPthreadsBitonicsort)
+BENCHMARK_TEMPLATE(BM_Sort, int32_t, SortType::kParallelPthreadsBitonicsort)
     ->Unit(benchmark::kMillisecond)
     ->UseRealTime();
-BENCHMARK_TEMPLATE(BM_Sort, int32_t, SortType::kNonBlockingBitonicsort)
+BENCHMARK_TEMPLATE(BM_Sort, int32_t, SortType::kParallelNonBlockingBitonicsort)
     ->Unit(benchmark::kMillisecond)
     ->UseRealTime();
-BENCHMARK_TEMPLATE(BM_Sort, int32_t, SortType::kGnuMultiwayMergesort)
+BENCHMARK_TEMPLATE(BM_Sort, int32_t, SortType::kParallelGnuMultiwayMergesort)
     ->Unit(benchmark::kMillisecond)
     ->UseRealTime();
-BENCHMARK_TEMPLATE(BM_Sort, int64_t, SortType::kStdSort)
+BENCHMARK_TEMPLATE(BM_Sort, int64_t, SortType::kSequentialStdSort)
     ->Unit(benchmark::kMillisecond)
     ->UseRealTime();
-BENCHMARK_TEMPLATE(BM_Sort, int64_t, SortType::kOriginalBitonicsort)
+BENCHMARK_TEMPLATE(BM_Sort, int64_t, SortType::kSequentialOriginalBitonicsort)
     ->Unit(benchmark::kMillisecond)
     ->UseRealTime();
-BENCHMARK_TEMPLATE(BM_Sort, int64_t, SortType::kSegmentedBitonicsort)
+BENCHMARK_TEMPLATE(BM_Sort, int64_t, SortType::kSequentialSegmentedBitonicsort)
     ->Unit(benchmark::kMillisecond)
     ->UseRealTime();
-BENCHMARK_TEMPLATE(BM_Sort, int64_t, SortType::kOmpBasedBitonicsort)
+BENCHMARK_TEMPLATE(BM_Sort, int64_t, SortType::kParallelOmpBasedBitonicsort)
     ->Unit(benchmark::kMillisecond)
     ->UseRealTime();
-BENCHMARK_TEMPLATE(BM_Sort, int64_t, SortType::kPthreadsBitonicsort)
+BENCHMARK_TEMPLATE(BM_Sort, int64_t, SortType::kParallelPthreadsBitonicsort)
     ->Unit(benchmark::kMillisecond)
     ->UseRealTime();
-BENCHMARK_TEMPLATE(BM_Sort, int64_t, SortType::kNonBlockingBitonicsort)
+BENCHMARK_TEMPLATE(BM_Sort, int64_t, SortType::kParallelNonBlockingBitonicsort)
     ->Unit(benchmark::kMillisecond)
     ->UseRealTime();
-BENCHMARK_TEMPLATE(BM_Sort, int64_t, SortType::kGnuMultiwayMergesort)
+BENCHMARK_TEMPLATE(BM_Sort, int64_t, SortType::kParallelGnuMultiwayMergesort)
     ->Unit(benchmark::kMillisecond)
     ->UseRealTime();
 

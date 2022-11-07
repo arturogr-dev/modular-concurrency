@@ -21,44 +21,45 @@ namespace sorting {
 
 // Supported execution policies.
 enum class SortType {
-  kStdSort = 0,                 // Sequential C++ standard library sort.
-  kOriginalBitonicsort = 1,     // Sequential original bitonicsort.
-  kSegmentedBitonicsort = 2,    // Sequential segmented bitonicsort.
-  kOmpBasedBitonicsort = 3,     // Parallel OpenMP segmented bitonicsort.
-  kPthreadsBitonicsort = 4,     // Parallel blocking segmented bitonicsort.
-  kNonBlockingBitonicsort = 5,  // Parallel non-blocking segmented bitonicsort.
-  kGnuMultiwayMergesort = 6,    // Parallel C++ standard library GNU mergesort.
+  kSequentialStdSort = 0,               // C++ standard library sort.
+  kSequentialOriginalBitonicsort = 1,   // Original bitonicsort.
+  kSequentialSegmentedBitonicsort = 2,  // Segmented bitonicsort.
+  kParallelOmpBasedBitonicsort = 3,     // OpenMP-based segmented bitonicsort.
+  kParallelPthreadsBitonicsort = 4,     // Barrier-based segmented bitonicsort.
+  kParallelNonBlockingBitonicsort = 5,  // Non-blocking segmented bitonicsort.
+  kParallelGnuMultiwayMergesort = 6,    // C++ standard library GNU mergesort.
 };
 
 // =============================================================================
 // Main function to execute the different sorting algorithms.
 template <typename Iterator>
-void sort(Iterator begin, Iterator end, SortType sort_type = SortType::kStdSort,
+void sort(Iterator begin, Iterator end,
+          SortType sort_type = SortType::kSequentialStdSort,
           size_t num_threads = std::thread::hardware_concurrency(),
-          size_t segment_size = 1 /* number of elements */,
+          size_t segment_size = 1 /*number of elements*/,
           std::function<void()> wait_policy = &modcncy::cpu_yield) {
   switch (sort_type) {
-    case SortType::kStdSort:
+    case SortType::kSequentialStdSort:
       std::sort(begin, end);
       break;
-    case SortType::kOriginalBitonicsort:
+    case SortType::kSequentialOriginalBitonicsort:
       bitonicsort::original(begin, end);
       break;
-    case SortType::kSegmentedBitonicsort:
+    case SortType::kSequentialSegmentedBitonicsort:
       bitonicsort::segmented(begin, end, segment_size);
       break;
-    case SortType::kOmpBasedBitonicsort:
+    case SortType::kParallelOmpBasedBitonicsort:
       bitonicsort::parallel_ompbased(begin, end, num_threads, segment_size);
       break;
-    case SortType::kPthreadsBitonicsort:
+    case SortType::kParallelPthreadsBitonicsort:
       bitonicsort::parallel_pthreads(begin, end, num_threads, segment_size,
                                      wait_policy);
       break;
-    case SortType::kNonBlockingBitonicsort:
+    case SortType::kParallelNonBlockingBitonicsort:
       bitonicsort::parallel_nonblocking(begin, end, num_threads, segment_size,
                                         wait_policy);
       break;
-    case SortType::kGnuMultiwayMergesort:
+    case SortType::kParallelGnuMultiwayMergesort:
       __gnu_parallel::sort(begin, end,
                            __gnu_parallel::multiway_mergesort_tag(num_threads));
       break;
