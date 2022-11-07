@@ -91,9 +91,8 @@ void segmented(Iterator begin, Iterator end, size_t segment_size) {
   // Setup.
   const size_t data_size = end - begin;
   const size_t num_segments = data_size / segment_size;
-  const size_t buffer_size = 2 * segment_size;
   typedef typename std::iterator_traits<Iterator>::value_type value_type;
-  std::vector<value_type> buffer(buffer_size);
+  value_type* buffer = new value_type[2 * segment_size];
 
   // Sort each indiviual segment.
   for (size_t i = 0; i < data_size; i += segment_size)
@@ -108,17 +107,19 @@ void segmented(Iterator begin, Iterator end, size_t segment_size) {
           if ((i & k) == 0)
             merge::Up(/*segment1=*/&*(begin + i * segment_size),
                       /*segment2=*/&*(begin + ij * segment_size),
-                      /*buffer=*/buffer.data(),
+                      /*buffer=*/buffer,
                       /*segment_size=*/segment_size);
           else
             merge::Dn(/*segment1=*/&*(begin + i * segment_size),
                       /*segment2=*/&*(begin + ij * segment_size),
-                      /*buffer=*/buffer.data(),
+                      /*buffer=*/buffer,
                       /*segment_size=*/segment_size);
         }
       }
     }
   }
+
+  delete[] buffer;
 }
 
 // =============================================================================
@@ -134,9 +135,8 @@ void parallel_ompbased(Iterator begin, Iterator end, size_t num_threads,
   {
     const size_t data_size = end - begin;
     const size_t num_segments = data_size / segment_size;
-    const size_t buffer_size = 2 * segment_size;
     typedef typename std::iterator_traits<Iterator>::value_type value_type;
-    std::vector<value_type> buffer(buffer_size);
+    value_type* buffer = new value_type[2 * segment_size];
 
     // Sort each indiviual segment.
     #pragma omp for
@@ -153,17 +153,19 @@ void parallel_ompbased(Iterator begin, Iterator end, size_t num_threads,
             if ((i & k) == 0)
               merge::Up(/*segment1=*/&*(begin + i * segment_size),
                         /*segment2=*/&*(begin + ij * segment_size),
-                        /*buffer=*/buffer.data(),
+                        /*buffer=*/buffer,
                         /*segment_size=*/segment_size);
             else
               merge::Dn(/*segment1=*/&*(begin + i * segment_size),
                         /*segment2=*/&*(begin + ij * segment_size),
-                        /*buffer=*/buffer.data(),
+                        /*buffer=*/buffer,
                         /*segment_size=*/segment_size);
           }
         }
       }
     }
+
+    delete[] buffer;
   }  // pragma omp parallel
 }
 
@@ -188,9 +190,8 @@ void parallel_pthreads(
     const size_t high_segment = low_segment + num_segments_per_thread;
     const size_t low_index = low_segment * segment_size;
     const size_t high_index = high_segment * segment_size;
-    const size_t buffer_size = 2 * segment_size;
     typedef typename std::iterator_traits<Iterator>::value_type value_type;
-    std::vector<value_type> buffer(buffer_size);
+    value_type* buffer = new value_type[2 * segment_size];
 
     // Sort each indiviual segment.
     for (size_t i = low_index; i < high_index; i += segment_size)
@@ -207,18 +208,20 @@ void parallel_pthreads(
             if ((i & k) == 0)
               merge::Up(/*segment1=*/&*(begin + i * segment_size),
                         /*segment2=*/&*(begin + ij * segment_size),
-                        /*buffer=*/buffer.data(),
+                        /*buffer=*/buffer,
                         /*segment_size=*/segment_size);
             else
               merge::Dn(/*segment1=*/&*(begin + i * segment_size),
                         /*segment2=*/&*(begin + ij * segment_size),
-                        /*buffer=*/buffer.data(),
+                        /*buffer=*/buffer,
                         /*segment_size=*/segment_size);
           }
         }
         barrier->Wait(num_threads, wait_policy);  // Barrier synchronization.
       }
     }
+
+    delete[] buffer;
   };  // function thread_work
 
   modcncy::Barrier* barrier = modcncy::Barrier::Create(
@@ -256,16 +259,15 @@ void parallel_nonblocking(
   auto thread_work = [](Iterator begin, size_t thread_index, size_t num_threads,
                         size_t num_segments, size_t segment_size,
                         std::function<void()> wait_policy,
-                        std::vector<std::atomic<size_t>>* segment_stage_count) {
+                        std::atomic<size_t>* segment_stage_count) {
     // Setup.
     const size_t num_segments_per_thread = num_segments / num_threads;
     const size_t low_segment = thread_index * num_segments_per_thread;
     const size_t high_segment = low_segment + num_segments_per_thread;
     const size_t low_index = low_segment * segment_size;
     const size_t high_index = high_segment * segment_size;
-    const size_t buffer_size = 2 * segment_size;
     typedef typename std::iterator_traits<Iterator>::value_type value_type;
-    std::vector<value_type> buffer(buffer_size);
+    value_type* buffer = new value_type[2 * segment_size];
     size_t my_stage = 0;
 
     for (size_t i = low_index; i < high_index; i += segment_size) {
@@ -273,7 +275,7 @@ void parallel_nonblocking(
       std::sort(begin + i, begin + i + segment_size);
       // Mark segment "ready" for next stage.
       const size_t segment_id = i / segment_size;
-      (*segment_stage_count)[segment_id].fetch_add(1);
+      segment_stage_count[segment_id].fetch_add(1);
     }
 
     // Mark this thread "ready" for next stage.
@@ -291,25 +293,25 @@ void parallel_nonblocking(
             const size_t segment2_id = segment2_index / segment_size;
 
             // Wait until the segments I need are on my same stage.
-            while (my_stage != (*segment_stage_count)[segment1_id].load())
+            while (my_stage != segment_stage_count[segment1_id].load())
               wait_policy();
-            while (my_stage != (*segment_stage_count)[segment2_id].load())
+            while (my_stage != segment_stage_count[segment2_id].load())
               wait_policy();
 
             if ((i & k) == 0)
               merge::Up(/*segment1=*/&*(begin + segment1_index),
                         /*segment2=*/&*(begin + segment2_index),
-                        /*buffer=*/buffer.data(),
+                        /*buffer=*/buffer,
                         /*segment_size=*/segment_size);
             else
               merge::Dn(/*segment1=*/&*(begin + segment1_index),
                         /*segment2=*/&*(begin + segment2_index),
-                        /*buffer=*/buffer.data(),
+                        /*buffer=*/buffer,
                         /*segment_size=*/segment_size);
 
             // Mark segments "ready" for next stage.
-            (*segment_stage_count)[segment1_id].fetch_add(1);
-            (*segment_stage_count)[segment2_id].fetch_add(1);
+            segment_stage_count[segment1_id].fetch_add(1);
+            segment_stage_count[segment2_id].fetch_add(1);
           }
         }
 
@@ -317,9 +319,12 @@ void parallel_nonblocking(
         ++my_stage;
       }
     }
+
+    delete[] buffer;
   };  // function thread_work
 
-  std::vector<std::atomic<size_t>> segment_stage_count(num_segments);
+  std::atomic<size_t>* segment_stage_count =
+      new std::atomic<size_t>[num_segments];
   for (size_t i = 0; i < num_segments; ++i) segment_stage_count[i] = 0;
 
   // Launch threads.
@@ -329,14 +334,15 @@ void parallel_nonblocking(
   for (size_t i = 1; i < num_threads; ++i) {
     threads.push_back(std::thread(thread_work, begin, /*thread_index=*/i,
                                   num_threads, num_segments, segment_size,
-                                  wait_policy, &segment_stage_count));
+                                  wait_policy, segment_stage_count));
   }
   thread_work(begin, /*thread_index=*/0, num_threads, num_segments,
-              segment_size, wait_policy, &segment_stage_count);
+              segment_size, wait_policy, segment_stage_count);
 
   // Join threads.
   // So main thread can acquire the last published changes of the other threads.
   for (auto& thread : threads) thread.join();
+  delete[] segment_stage_count;
 }
 
 }  // namespace bitonicsort
