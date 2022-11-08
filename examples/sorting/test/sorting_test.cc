@@ -34,7 +34,7 @@ TEST_P(SortingCorrectnessTest, Sort32BitInts) {
     unsorted[i] = size - i - 1;
     sorted[i] = i;
   }
-  sorting::sort(unsorted.begin(), unsorted.end(), /*sort_type=*/GetParam());
+  sort(unsorted.begin(), unsorted.end(), /*sort_type=*/GetParam());
   EXPECT_EQ(unsorted, sorted);
 }
 
