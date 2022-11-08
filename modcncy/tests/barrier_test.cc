@@ -56,6 +56,7 @@ TEST_P(BarrierBehaviorTest, SimpleReadBeforeWrite) {
 
   // Launch `num_threads - 1` threads to hit the barrier and increase `counter`.
   std::vector<std::thread> threads;
+  threads.reserve(num_threads - 1);
   for (int i = 0; i < num_threads - 1; ++i) {
     threads.emplace_back([&] {
       barrier->Wait(num_threads);
