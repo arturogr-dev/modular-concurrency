@@ -24,14 +24,13 @@
 //   + An OpenMP-based implementation. The concurrency model is delegated to the
 //     OpenMP runtime and its barrier synchronization primitive.
 //
-//   + A pthreads-based multithreaded implementation. The concurrency is handled
+//   + A barrier-based multithreaded implementation. The concurrency is handled
 //     via an explicit barrier synchronization primitive, where all threads wait
 //     until all others reach this same point (blocking).
 //
 //   + A non-blocking multithreaded implementation. Due to the regular memory
 //     access pattern that is exposed by the algorithm, it is possible to bypass
 //     the explicit use of a synchronization primitive (a barrier in this case).
-//     I call this version of the algorithm: self-synchronizable bitonicsort.
 //     By exploiting the memory access pattern, one execution thread does not
 //     need to wait for all other execution threads to reach the barrier. The
 //     idea is to keep track of which data segment is being worked on by which
@@ -61,7 +60,7 @@
 namespace sorting {
 namespace bitonicsort {
 
-// ===========================================================================
+// =============================================================================
 // Original bitonicsort.
 template <typename Iterator>
 void original(Iterator begin, Iterator end) {
@@ -125,28 +124,28 @@ void segmented(Iterator begin, Iterator end, size_t segment_size) {
 // =============================================================================
 // Parallel OpenMP segmented bitonicsort.
 template <typename Iterator>
-void parallel_ompbased(Iterator begin, Iterator end, size_t num_threads,
-                       size_t segment_size) {
+void ompbased(Iterator begin, Iterator end, size_t num_threads,
+              size_t segment_size) {
   // Setup.
   omp_set_dynamic(0);
   omp_set_num_threads(num_threads);
 
-  #pragma omp parallel
+#pragma omp parallel
   {
     const size_t data_size = end - begin;
     const size_t num_segments = data_size / segment_size;
     typedef typename std::iterator_traits<Iterator>::value_type value_type;
     value_type* buffer = new value_type[2 * segment_size];
 
-    // Sort each indiviual segment.
-    #pragma omp for
+// Sort each indiviual segment.
+#pragma omp for
     for (size_t i = 0; i < data_size; i += segment_size)
       std::sort(begin + i, begin + i + segment_size);
 
     // Bitonic merging network.
     for (size_t k = 2; k <= num_segments; k <<= 1) {
       for (size_t j = k >> 1; j > 0; j >>= 1) {
-        #pragma omp for
+#pragma omp for
         for (size_t i = 0; i < num_segments; ++i) {
           const size_t ij = i ^ j;
           if (i < ij) {
@@ -172,9 +171,9 @@ void parallel_ompbased(Iterator begin, Iterator end, size_t num_threads,
 // =============================================================================
 // Parallel pthreads segmented bitonicsort.
 template <typename Iterator>
-void parallel_pthreads(
-    Iterator begin, Iterator end, size_t num_threads, size_t segment_size,
-    std::function<void()> wait_policy = &modcncy::cpu_yield) {
+void blocking(Iterator begin, Iterator end, size_t num_threads,
+              size_t segment_size,
+              std::function<void()> wait_policy = &modcncy::cpu_yield) {
   // Setup.
   const size_t data_size = end - begin;
   const size_t num_segments = data_size / segment_size;
@@ -248,9 +247,9 @@ void parallel_pthreads(
 // =============================================================================
 // Parallel non-blocking segmented bitonicsort.
 template <typename Iterator>
-void parallel_nonblocking(
-    Iterator begin, Iterator end, size_t num_threads, size_t segment_size,
-    std::function<void()> wait_policy = &modcncy::cpu_yield) {
+void lockfree(Iterator begin, Iterator end, size_t num_threads,
+              size_t segment_size,
+              std::function<void()> wait_policy = &modcncy::cpu_yield) {
   // Setup.
   const size_t data_size = end - begin;
   const size_t num_segments = data_size / segment_size;

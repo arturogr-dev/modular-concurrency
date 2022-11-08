@@ -13,9 +13,9 @@
 
 #include <algorithm>
 #include <functional>
-#include <parallel/algorithm>  // NOLINT(build/include_order)
 
 #include "examples/sorting/include/bitonicsort.h"
+#include "examples/sorting/include/gnu_impl.h"
 
 namespace sorting {
 
@@ -25,8 +25,8 @@ enum class SortType {
   kSequentialOriginalBitonicsort = 1,   // Original bitonicsort.
   kSequentialSegmentedBitonicsort = 2,  // Segmented bitonicsort.
   kParallelOmpBasedBitonicsort = 3,     // OpenMP-based segmented bitonicsort.
-  kParallelPthreadsBitonicsort = 4,     // Barrier-based segmented bitonicsort.
-  kParallelNonBlockingBitonicsort = 5,  // Non-blocking segmented bitonicsort.
+  kParallelBlockingBitonicsort = 4,     // Barrier-based segmented bitonicsort.
+  kParallelLockFreeBitonicsort = 5,     // Lock-free segmented bitonicsort.
   kParallelGnuMultiwayMergesort = 6,    // C++ stdlib GNU mergesort.
   kParallelGnuQuicksort = 7,            // C++ stdlib GNU quicksort.
   kParallelGnuBalancedQuicksort = 8,    // C++ stdlib GNU balanced quicksort.
@@ -51,27 +51,22 @@ void sort(Iterator begin, Iterator end,
       bitonicsort::segmented(begin, end, segment_size);
       break;
     case SortType::kParallelOmpBasedBitonicsort:
-      bitonicsort::parallel_ompbased(begin, end, num_threads, segment_size);
+      bitonicsort::ompbased(begin, end, num_threads, segment_size);
       break;
-    case SortType::kParallelPthreadsBitonicsort:
-      bitonicsort::parallel_pthreads(begin, end, num_threads, segment_size,
-                                     wait_policy);
+    case SortType::kParallelBlockingBitonicsort:
+      bitonicsort::blocking(begin, end, num_threads, segment_size, wait_policy);
       break;
-    case SortType::kParallelNonBlockingBitonicsort:
-      bitonicsort::parallel_nonblocking(begin, end, num_threads, segment_size,
-                                        wait_policy);
+    case SortType::kParallelLockFreeBitonicsort:
+      bitonicsort::lockfree(begin, end, num_threads, segment_size, wait_policy);
       break;
     case SortType::kParallelGnuMultiwayMergesort:
-      __gnu_parallel::sort(begin, end,
-                           __gnu_parallel::multiway_mergesort_tag(num_threads));
+      gnu_impl::multiway_mergesort(begin, end, num_threads);
       break;
     case SortType::kParallelGnuQuicksort:
-      __gnu_parallel::sort(begin, end,
-                           __gnu_parallel::quicksort_tag(num_threads));
+      gnu_impl::quicksort(begin, end, num_threads);
       break;
     case SortType::kParallelGnuBalancedQuicksort:
-      __gnu_parallel::sort(begin, end,
-                           __gnu_parallel::balanced_quicksort_tag(num_threads));
+      gnu_impl::balanced_quicksort(begin, end, num_threads);
       break;
   }
 }
