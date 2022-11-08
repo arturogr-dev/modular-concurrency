@@ -14,8 +14,8 @@ __MAGENTA__ = $(shell tput setaf 5)
 __CYAN__    = $(shell tput setaf 6)
 __SGR0__    = $(shell tput sgr0)
 
-__TARGET__  = 0  # Initially zero.
-__TARGETS__ = 9  # Total number of targets in Makefile, excluding `all`.
+__TARGET__  = 0   # Initially zero.
+__TARGETS__ = 11  # Total number of targets in Makefile, excluding `all`.
 __PERCENT__ = $(shell echo "scale=0; $(__TARGET__)*100/$(__TARGETS__)" | bc)
 
 # Build the library.
@@ -30,13 +30,17 @@ INC_PATHS = -I../ -I./include
 SRC_NAMES = central_sense_counter_barrier \
 	central_step_counter_barrier \
 	barrier \
-	flags
+	flags \
+	blocking_task_queue \
+	concurrent_task_queue
 
 # Add the desired output object files here.
 OBJ_FILES = $(BUILD_DIR)/central_sense_counter_barrier.o \
 	$(BUILD_DIR)/central_step_counter_barrier.o \
 	$(BUILD_DIR)/barrier.o \
-	$(BUILD_DIR)/flags.o
+	$(BUILD_DIR)/flags.o \
+	$(BUILD_DIR)/blocking_task_queue.o \
+	$(BUILD_DIR)/concurrent_task_queue.o
 
 .PHONY: $(BUILD_DIR) \
 	$(SRC_NAMES) \
@@ -81,11 +85,21 @@ flags: src/flags/flags.cc
 	$(info $(__GREEN__)[ $(__PERCENT__)%]$(__SGR0__) Building $(__CYAN__)$@$(__SGR0__).)
 	@$(CXX_CMPLR) -c $< $(INC_PATHS) $(CXX_FLAGS) -o $(BUILD_DIR)/$@.o
 
-build: $(SRC_NAMES)
+blocking_task_queue: src/containers/concurrent_task_queues/blocking_task_queue.cc
 	$(eval __TARGET__=8)
+	$(info $(__GREEN__)[ $(__PERCENT__)%]$(__SGR0__) Building $(__CYAN__)$@$(__SGR0__).)
+	@$(CXX_CMPLR) -c $< $(INC_PATHS) $(CXX_FLAGS) -o $(BUILD_DIR)/$@.o
+
+concurrent_task_queue: src/containers/concurrent_task_queues/concurrent_task_queue.cc
+	$(eval __TARGET__=9)
+	$(info $(__GREEN__)[ $(__PERCENT__)%]$(__SGR0__) Building $(__CYAN__)$@$(__SGR0__).)
+	@$(CXX_CMPLR) -c $< $(INC_PATHS) $(CXX_FLAGS) -o $(BUILD_DIR)/$@.o
+
+build: $(SRC_NAMES)
+	$(eval __TARGET__=10)
 	$(info $(__GREEN__)[ $(__PERCENT__)%]$(__SGR0__) Building $(__CYAN__)$(BUILD_DIR)/lib$(_LIBRARY_).a$(__SGR0__).)
 	@ar -crs $(BUILD_DIR)/lib$(_LIBRARY_).a $(OBJ_FILES)
 	
 teardown:
-	$(eval __TARGET__=9)
+	$(eval __TARGET__=11)
 	$(info $(__GREEN__)[$(__PERCENT__)%]$(__SGR0__) $(__MAGENTA__)Finished successfully.$(__SGR0__))

@@ -33,7 +33,8 @@ endif
 
 # Add your tests here with the prefix `run_` and as a target.
 TESTS = run_barrier_test \
-	run_flags_test
+	run_flags_test \
+	run_concurrent_task_queue_test
 
 .PHONY: all \
 	setup \
@@ -67,6 +68,13 @@ flags_test: flags_test.cc
 	$(info $(__CYAN__)-- Compiling $<$(__SGR0__))
 	$(CXX_CMPLR) $< $(INC_PATHS) $(LNK_PATHS) $(LNK_NAMES) $(CXX_FLAGS) -o $(BUILD_DIR)/run_$@
 run_flags_test: flags_test
+	$(info $(__CYAN__)-- Running $@$(__SGR0__))
+	$(BUILD_DIR)/$@ $(gtest_flags)
+
+concurrent_task_queue_test: concurrent_task_queue_test.cc
+	$(info $(__CYAN__)-- Compiling $<$(__SGR0__))
+	$(CXX_CMPLR) $< $(INC_PATHS) $(LNK_PATHS) $(LNK_NAMES) $(CXX_FLAGS) -o $(BUILD_DIR)/run_$@
+run_concurrent_task_queue_test: concurrent_task_queue_test
 	$(info $(__CYAN__)-- Running $@$(__SGR0__))
 	$(BUILD_DIR)/$@ $(gtest_flags)
 
