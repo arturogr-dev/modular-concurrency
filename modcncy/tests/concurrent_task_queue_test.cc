@@ -3,9 +3,9 @@
 // -----------------------------------------------------------------------------
 
 #include <gtest/gtest.h>
+#include <modcncy/barrier.h>
 #include <modcncy/concurrent_task_queue.h>
 
-#include <chrono>  // NOLINT(build/c++11)
 #include <mutex>   // NOLINT(build/c++11)
 #include <thread>  // NOLINT(build/c++11)
 #include <vector>
@@ -47,9 +47,12 @@ TEST_P(ConcurrentTaskQueueBehaviorTest, ConcurrentTaskQueueExecution) {
   const int num_threads = std::thread::hardware_concurrency();
   auto queue = ConcurrentTaskQueue::Create(/*type=*/GetParam());
   EXPECT_NE(queue, nullptr);
+  auto barrier = Barrier::Create(BarrierType::kCentralSenseCounterBarrier);
+  EXPECT_NE(barrier, nullptr);
   std::mutex mutex;
   int counter = 0;  // Guarded by `mutex`.
 
+  // Each thread pushes one task and executes one task.
   std::vector<std::thread> threads;
   threads.reserve(num_threads);
   for (int i = 0; i < num_threads; ++i) {
@@ -59,13 +62,12 @@ TEST_P(ConcurrentTaskQueueBehaviorTest, ConcurrentTaskQueueExecution) {
         std::unique_lock<std::mutex> lock(mutex);
         ++counter;
       });
-      // Sleep only half of the threads to create a more random scenario.
-      if (i % 2 == 0) std::this_thread::sleep_for(std::chrono::seconds(1));
       // Each thread pops a task and executes it.
       std::function<void()> task = queue->Pop();
       task();
-      // After a "long" period of time, all tasks should have been executed.
-      std::this_thread::sleep_for(std::chrono::seconds(2));
+      // Wait until all threads have executed one task.
+      barrier->Wait(num_threads);
+      // The queue should be empty now for all threads.
       EXPECT_EQ(queue->Pop(), nullptr);
     });
   }
