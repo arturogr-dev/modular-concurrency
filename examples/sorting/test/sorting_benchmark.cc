@@ -72,7 +72,8 @@ bool is_bitonicsort(SortType sort_type) {
          sort_type == SortType::kSequentialSegmentedBitonicsort ||
          sort_type == SortType::kParallelOmpBasedBitonicsort ||
          sort_type == SortType::kParallelBlockingBitonicsort ||
-         sort_type == SortType::kParallelLockFreeBitonicsort;
+         sort_type == SortType::kParallelLockFreeBitonicsort ||
+         sort_type == SortType::kParallelStealingBitonicsort;
 }
 
 // =============================================================================
@@ -175,6 +176,9 @@ BENCHMARK_TEMPLATE(BM_Sort, int32_t, SortType::kParallelBlockingBitonicsort)
 BENCHMARK_TEMPLATE(BM_Sort, int32_t, SortType::kParallelLockFreeBitonicsort)
     ->Unit(benchmark::kMillisecond)
     ->UseRealTime();
+BENCHMARK_TEMPLATE(BM_Sort, int32_t, SortType::kParallelStealingBitonicsort)
+    ->Unit(benchmark::kMillisecond)
+    ->UseRealTime();
 BENCHMARK_TEMPLATE(BM_Sort, int32_t, SortType::kParallelGnuMultiwayMergesort)
     ->Unit(benchmark::kMillisecond)
     ->UseRealTime();
@@ -200,6 +204,9 @@ BENCHMARK_TEMPLATE(BM_Sort, int64_t, SortType::kParallelBlockingBitonicsort)
     ->Unit(benchmark::kMillisecond)
     ->UseRealTime();
 BENCHMARK_TEMPLATE(BM_Sort, int64_t, SortType::kParallelLockFreeBitonicsort)
+    ->Unit(benchmark::kMillisecond)
+    ->UseRealTime();
+BENCHMARK_TEMPLATE(BM_Sort, int64_t, SortType::kParallelStealingBitonicsort)
     ->Unit(benchmark::kMillisecond)
     ->UseRealTime();
 BENCHMARK_TEMPLATE(BM_Sort, int64_t, SortType::kParallelGnuMultiwayMergesort)

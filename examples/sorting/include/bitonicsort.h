@@ -44,6 +44,7 @@
 #define EXAMPLES_SORTING_INCLUDE_BITONICSORT_H_
 
 #include <modcncy/barrier.h>
+#include <modcncy/concurrent_task_queue.h>
 #include <modcncy/wait_policy.h>
 #include <omp.h>
 
@@ -342,6 +343,124 @@ void lockfree(Iterator begin, Iterator end, size_t num_threads,
   // So main thread can acquire the last published changes of the other threads.
   for (auto& thread : threads) thread.join();
   delete[] segment_stage_count;
+}
+
+// =============================================================================
+// Parallel pthreads segmented bitonicsort plus task stealing.
+template <typename Iterator>
+void stealing(Iterator begin, Iterator end, size_t num_threads,
+              size_t segment_size,
+              std::function<void()> wait_policy = &modcncy::cpu_yield) {
+  // Setup.
+  const size_t data_size = end - begin;
+  const size_t num_segments = data_size / segment_size;
+
+  // Work to be done per thread.
+  auto thread_work = [](Iterator begin, size_t thread_index, size_t num_threads,
+                        size_t num_segments, size_t segment_size,
+                        std::function<void()> wait_policy,
+                        modcncy::Barrier* barrier,
+                        modcncy::ConcurrentTaskQueue** queue) {
+    // Setup.
+    const size_t num_segments_per_thread = num_segments / num_threads;
+    const size_t low_segment = thread_index * num_segments_per_thread;
+    const size_t high_segment = low_segment + num_segments_per_thread;
+    const size_t low_index = low_segment * segment_size;
+    const size_t high_index = high_segment * segment_size;
+
+    auto execute_tasks = [&](size_t queue_index) {
+      for (;;) {
+        std::function<void()> task = std::move(queue[queue_index]->Pop());
+        if (task == nullptr) break;
+        task();
+      }
+    };  // function execute_tasks
+
+    auto steal_tasks = [&]() {
+      for (size_t i = thread_index + 1; i < num_threads + thread_index; ++i)
+        execute_tasks(/*queue_index=*/(thread_index + i) % num_threads);
+      wait_policy();
+    };  // function steal_tasks
+
+    // Sort each indiviual segment.
+    for (size_t i = low_index; i < high_index; i += segment_size) {
+      queue[thread_index]->Push(
+          [&, i] { std::sort(begin + i, begin + i + segment_size); });
+    }
+    execute_tasks(thread_index);
+
+    barrier->Wait(num_threads, steal_tasks);  // Barrier synchronization.
+
+    // Bitonic merging network.
+    for (size_t k = 2; k <= num_segments; k <<= 1) {
+      for (size_t j = k >> 1; j > 0; j >>= 1) {
+        // This barrier is necessary to acquire stealed work from other threads.
+        barrier->Wait(num_threads, steal_tasks);
+
+        for (size_t i = low_segment; i < high_segment; ++i) {
+          const size_t ij = i ^ j;
+          if (i < ij) {
+            if ((i & k) == 0)
+              queue[thread_index]->Push([begin, i, ij, segment_size] {
+                typedef typename std::iterator_traits<Iterator>::value_type val;
+                // TODO(arturogr-dev): There is room for optimization here.
+                // Avoid multiple allocations by allowing arguments in the queue
+                // of tasks and, therefore, reuse the same buffer for all calls.
+                std::vector<val> buffer(2 * segment_size);
+                merge::Up(/*segment1=*/&*(begin + i * segment_size),
+                          /*segment2=*/&*(begin + ij * segment_size),
+                          /*buffer=*/buffer.data(),
+                          /*segment_size=*/segment_size);
+              });
+            else
+              queue[thread_index]->Push([begin, i, ij, segment_size] {
+                typedef typename std::iterator_traits<Iterator>::value_type val;
+                // TODO(arturogr-dev): There is room for optimization here.
+                // Avoid multiple allocations by allowing arguments in the queue
+                // of tasks and, therefore, reuse the same buffer for all calls.
+                std::vector<val> buffer(2 * segment_size);
+                merge::Dn(/*segment1=*/&*(begin + i * segment_size),
+                          /*segment2=*/&*(begin + ij * segment_size),
+                          /*buffer=*/buffer.data(),
+                          /*segment_size=*/segment_size);
+              });
+          }
+        }
+        execute_tasks(thread_index);
+
+        // This barrier is necessary to publish stealed work to other threads.
+        barrier->Wait(num_threads, steal_tasks);
+      }
+    }
+  };  // function thread_work
+
+  modcncy::Barrier* barrier = modcncy::Barrier::Create(
+      modcncy::BarrierType::kCentralSenseCounterBarrier);
+
+  modcncy::ConcurrentTaskQueue** queue =
+      new modcncy::ConcurrentTaskQueue*[num_threads];
+  for (size_t i = 0; i < num_threads; ++i)
+    queue[i] = modcncy::ConcurrentTaskQueue::Create(
+        modcncy::ConcurrentTaskQueueType::kBlockingTaskQueue);
+
+  // Launch threads.
+  // Main thread also performs work as thread 0, so loops starts in index 1.
+  std::vector<std::thread> threads;
+  threads.reserve(num_threads - 1);
+  for (size_t i = 1; i < num_threads; ++i) {
+    threads.push_back(std::thread(thread_work, begin, /*thread_index=*/i,
+                                  num_threads, num_segments, segment_size,
+                                  wait_policy, barrier, queue));
+  }
+  thread_work(begin, /*thread_index=*/0, num_threads, num_segments,
+              segment_size, wait_policy, barrier, queue);
+
+  // Join threads.
+  // So main thread can acquire the last published changes of the other threads.
+  for (auto& thread : threads) thread.join();
+  for (size_t i = 0; i < num_threads; ++i) delete queue[i];
+  delete[] queue;
+  delete barrier;
 }
 
 }  // namespace bitonicsort

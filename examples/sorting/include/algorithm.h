@@ -21,15 +21,16 @@ namespace sorting {
 
 // Supported execution policies.
 enum class SortType {
-  kSequentialStdSort = 0,               // C++ stdlib sort.
-  kSequentialOriginalBitonicsort = 1,   // Original bitonicsort.
-  kSequentialSegmentedBitonicsort = 2,  // Segmented bitonicsort.
-  kParallelOmpBasedBitonicsort = 3,     // OpenMP-based segmented bitonicsort.
-  kParallelBlockingBitonicsort = 4,     // Barrier-based segmented bitonicsort.
-  kParallelLockFreeBitonicsort = 5,     // Lock-free segmented bitonicsort.
-  kParallelGnuMultiwayMergesort = 6,    // C++ stdlib GNU mergesort.
-  kParallelGnuQuicksort = 7,            // C++ stdlib GNU quicksort.
-  kParallelGnuBalancedQuicksort = 8,    // C++ stdlib GNU balanced quicksort.
+  kSequentialStdSort = 0,               // GNU sequential std::sort.
+  kSequentialOriginalBitonicsort = 1,   // Sequential original bitonicsort.
+  kSequentialSegmentedBitonicsort = 2,  // Sequential segment-based bitonicsort.
+  kParallelOmpBasedBitonicsort = 3,     // OpenMP-based segment-bitonicsort.
+  kParallelBlockingBitonicsort = 4,     // Barrier-based segment-bitonicsort.
+  kParallelLockFreeBitonicsort = 5,     // Lock-free segment-bitonicsort.
+  kParallelStealingBitonicsort = 6,     // Stealing-barrier segment-bitonicsort.
+  kParallelGnuMultiwayMergesort = 7,    // GNU multiway-mergesort.
+  kParallelGnuQuicksort = 8,            // GNU quicksort.
+  kParallelGnuBalancedQuicksort = 9,    // GNU balanced-quicksort.
 };
 
 // =============================================================================
@@ -58,6 +59,9 @@ void sort(Iterator begin, Iterator end,
       break;
     case SortType::kParallelLockFreeBitonicsort:
       bitonicsort::lockfree(begin, end, num_threads, segment_size, wait_policy);
+      break;
+    case SortType::kParallelStealingBitonicsort:
+      bitonicsort::stealing(begin, end, num_threads, segment_size, wait_policy);
       break;
     case SortType::kParallelGnuMultiwayMergesort:
       gnu_impl::multiway_mergesort(begin, end, num_threads);

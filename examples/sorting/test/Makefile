@@ -69,14 +69,14 @@ $(BUILD_DIR):
 
 sorting_test: sorting_test.cc
 	$(info $(__CYAN__)-- Compiling $<$(__SGR0__))
-	$(CXX_CMPLR) $< $(INC_PATHS_TEST) $(LNK_PATHS_TEST) $(LNK_NAMES_TEST) $(CXX_FLAGS) -o $(BUILD_DIR)/run_$@
+	$(CXX_CMPLR) $< $(INC_PATHS_TEST) $(LNK_PATHS_TEST) $(LNK_NAMES_TEST) $(CXX_FLAGS) $(cxx_flags) -o $(BUILD_DIR)/run_$@
 run_sorting_test: sorting_test
 	$(info $(__CYAN__)-- Running $@$(__SGR0__))
 	$(BUILD_DIR)/$@ $(gtest_flags)
 
 sorting_benchmark: sorting_benchmark.cc
 	$(info $(__CYAN__)-- Compiling $<$(__SGR0__))
-	$(CXX_CMPLR) $< $(INC_PATHS_BENCH) $(LNK_PATHS_BENCH) $(LNK_NAMES_BENCH) $(CXX_FLAGS) -o $(BUILD_DIR)/run_$@
+	$(CXX_CMPLR) $< $(INC_PATHS_BENCH) $(LNK_PATHS_BENCH) $(LNK_NAMES_BENCH) $(CXX_FLAGS) $(cxx_flags) -o $(BUILD_DIR)/run_$@
 run_sorting_benchmark: sorting_benchmark
 	$(info $(__CYAN__)-- Running $@$(__SGR0__))
 	$(BUILD_DIR)/$@ $(benchmark_flags) $(benchmark_args)
