@@ -28,9 +28,10 @@ enum class SortType {
   kParallelBlockingBitonicsort = 4,     // Barrier-based segment-bitonicsort.
   kParallelLockFreeBitonicsort = 5,     // Lock-free segment-bitonicsort.
   kParallelStealingBitonicsort = 6,     // Stealing-barrier segment-bitonicsort.
-  kParallelGnuMultiwayMergesort = 7,    // GNU multiway-mergesort.
-  kParallelGnuQuicksort = 8,            // GNU quicksort.
-  kParallelGnuBalancedQuicksort = 9,    // GNU balanced-quicksort.
+  kParallelWaitFreeBitonicsort = 7,     // Wait-free segment-bitonicsort.
+  kParallelGnuMultiwayMergesort = 8,    // GNU multiway-mergesort.
+  kParallelGnuQuicksort = 9,            // GNU quicksort.
+  kParallelGnuBalancedQuicksort = 10,   // GNU balanced-quicksort.
 };
 
 // =============================================================================
@@ -61,6 +62,9 @@ void sort(Iterator begin, Iterator end,
       bitonicsort::lockfree(begin, end, num_threads, segment_size, wait_policy);
       break;
     case SortType::kParallelStealingBitonicsort:
+      bitonicsort::stealing(begin, end, num_threads, segment_size, wait_policy);
+      break;
+    case SortType::kParallelWaitFreeBitonicsort:
       bitonicsort::stealing(begin, end, num_threads, segment_size, wait_policy);
       break;
     case SortType::kParallelGnuMultiwayMergesort:

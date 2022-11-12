@@ -22,6 +22,7 @@ INSTANTIATE_TEST_SUITE_P(
                     SortType::kParallelBlockingBitonicsort,
                     SortType::kParallelLockFreeBitonicsort,
                     SortType::kParallelStealingBitonicsort,
+                    SortType::kParallelWaitFreeBitonicsort,
                     SortType::kParallelGnuMultiwayMergesort,
                     SortType::kParallelGnuQuicksort,
                     SortType::kParallelGnuBalancedQuicksort));

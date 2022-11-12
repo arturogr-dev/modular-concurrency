@@ -463,6 +463,144 @@ void stealing(Iterator begin, Iterator end, size_t num_threads,
   delete barrier;
 }
 
+// =============================================================================
+// Parallel non-blocking segmented bitonicsort plus task stealing.
+template <typename Iterator>
+void waitfree(Iterator begin, Iterator end, size_t num_threads,
+              size_t segment_size,
+              std::function<void()> wait_policy = &modcncy::cpu_yield) {
+  // Setup.
+  const size_t data_size = end - begin;
+  const size_t num_segments = data_size / segment_size;
+
+  // Work to be done per thread.
+  auto thread_work = [](Iterator begin, size_t thread_index, size_t num_threads,
+                        size_t num_segments, size_t segment_size,
+                        std::function<void()> wait_policy,
+                        std::atomic<size_t>* segment_stage_count,
+                        modcncy::ConcurrentTaskQueue** queue) {
+    // Setup.
+    const size_t num_segments_per_thread = num_segments / num_threads;
+    const size_t low_segment = thread_index * num_segments_per_thread;
+    const size_t high_segment = low_segment + num_segments_per_thread;
+    const size_t low_index = low_segment * segment_size;
+    const size_t high_index = high_segment * segment_size;
+    size_t my_stage = 0;
+
+    auto execute_tasks = [&](size_t queue_index) {
+      for (;;) {
+        std::function<void()> task = std::move(queue[queue_index]->Pop());
+        if (task == nullptr) break;
+        task();
+      }
+    };  // function execute_tasks
+
+    auto steal_tasks = [&]() {
+      for (size_t i = thread_index + 1; i < num_threads + thread_index; ++i)
+        execute_tasks(/*queue_index=*/(thread_index + i) % num_threads);
+      wait_policy();
+    };  // function steal_tasks
+
+    // Sort each indiviual segment.
+    for (size_t i = low_index; i < high_index; i += segment_size) {
+      queue[thread_index]->Push([&, i] {
+        std::sort(begin + i, begin + i + segment_size);
+        // Mark segment "ready" for next stage.
+        segment_stage_count[/*segment_id=*/i / segment_size].fetch_add(1);
+      });
+    }
+    execute_tasks(thread_index);
+
+    // Mark this thread "ready" for next stage.
+    ++my_stage;
+
+    // Bitonic merging network.
+    for (size_t k = 2; k <= num_segments; k <<= 1) {
+      for (size_t j = k >> 1; j > 0; j >>= 1) {
+        for (size_t i = low_segment; i < high_segment; ++i) {
+          const size_t ij = i ^ j;
+          if (i < ij) {
+            const size_t segment1_index = i * segment_size;
+            const size_t segment2_index = ij * segment_size;
+            const size_t segment1_id = segment1_index / segment_size;
+            const size_t segment2_id = segment2_index / segment_size;
+
+            // Wait until the segments I need are on my same stage.
+            while (my_stage != segment_stage_count[segment1_id].load())
+              steal_tasks();
+            while (my_stage != segment_stage_count[segment2_id].load())
+              steal_tasks();
+
+            if ((i & k) == 0)
+              queue[thread_index]->Push([&, i, ij] {
+                typedef typename std::iterator_traits<Iterator>::value_type val;
+                // TODO(arturogr-dev): There is room for optimization here.
+                // Avoid multiple allocations by allowing arguments in the queue
+                // of tasks and, therefore, reuse the same buffer for all calls.
+                std::vector<val> buffer(2 * segment_size);
+                merge::Up(/*segment1=*/&*(begin + i * segment_size),
+                          /*segment2=*/&*(begin + ij * segment_size),
+                          /*buffer=*/buffer.data(),
+                          /*segment_size=*/segment_size);
+                // Mark segments "ready" for next stage.
+                segment_stage_count[segment1_id].fetch_add(1);
+                segment_stage_count[segment2_id].fetch_add(1);
+              });
+            else
+              queue[thread_index]->Push([&, i, ij] {
+                typedef typename std::iterator_traits<Iterator>::value_type val;
+                // TODO(arturogr-dev): There is room for optimization here.
+                // Avoid multiple allocations by allowing arguments in the queue
+                // of tasks and, therefore, reuse the same buffer for all calls.
+                std::vector<val> buffer(2 * segment_size);
+                merge::Dn(/*segment1=*/&*(begin + i * segment_size),
+                          /*segment2=*/&*(begin + ij * segment_size),
+                          /*buffer=*/buffer.data(),
+                          /*segment_size=*/segment_size);
+                // Mark segments "ready" for next stage.
+                segment_stage_count[segment1_id].fetch_add(1);
+                segment_stage_count[segment2_id].fetch_add(1);
+              });
+          }
+        }
+        execute_tasks(thread_index);
+
+        // Mark this thread "ready" for next stage.
+        ++my_stage;
+      }
+    }
+  };  // function thread_work
+
+  std::atomic<size_t>* segment_stage_count =
+      new std::atomic<size_t>[num_segments];
+  for (size_t i = 0; i < num_segments; ++i) segment_stage_count[i] = 0;
+
+  modcncy::ConcurrentTaskQueue** queue =
+      new modcncy::ConcurrentTaskQueue*[num_threads];
+  for (size_t i = 0; i < num_threads; ++i)
+    queue[i] = modcncy::ConcurrentTaskQueue::Create(
+        modcncy::ConcurrentTaskQueueType::kBlockingTaskQueue);
+
+  // Launch threads.
+  // Main thread also performs work as thread 0, so loops starts in index 1.
+  std::vector<std::thread> threads;
+  threads.reserve(num_threads - 1);
+  for (size_t i = 1; i < num_threads; ++i) {
+    threads.push_back(std::thread(thread_work, begin, /*thread_index=*/i,
+                                  num_threads, num_segments, segment_size,
+                                  wait_policy, segment_stage_count, queue));
+  }
+  thread_work(begin, /*thread_index=*/0, num_threads, num_segments,
+              segment_size, wait_policy, segment_stage_count, queue);
+
+  // Join threads.
+  // So main thread can acquire the last published changes of the other threads.
+  for (auto& thread : threads) thread.join();
+  for (size_t i = 0; i < num_threads; ++i) delete queue[i];
+  delete[] queue;
+  delete[] segment_stage_count;
+}
+
 }  // namespace bitonicsort
 }  // namespace sorting
 
