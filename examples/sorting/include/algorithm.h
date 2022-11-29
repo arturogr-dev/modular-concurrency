@@ -16,6 +16,7 @@
 
 #include "examples/sorting/include/bitonicsort.h"
 #include "examples/sorting/include/gnu_impl.h"
+#include "examples/sorting/include/oddevensort.h"
 
 namespace sorting {
 
@@ -29,9 +30,16 @@ enum class SortType {
   kParallelLockFreeBitonicsort = 5,     // Lock-free segment-bitonicsort.
   kParallelStealingBitonicsort = 6,     // Stealing-barrier segment-bitonicsort.
   kParallelWaitFreeBitonicsort = 7,     // Wait-free segment-bitonicsort.
-  kParallelGnuMultiwayMergesort = 8,    // GNU multiway-mergesort.
-  kParallelGnuQuicksort = 9,            // GNU quicksort.
-  kParallelGnuBalancedQuicksort = 10,   // GNU balanced-quicksort.
+  kSequentialOriginalOddEvensort = 8,   // Sequential segment-based oddevensort.
+  kSequentialSegmentedOddEvensort = 9,  // Sequential segment-based oddevensort.
+  kParallelOmpBasedOddEvensort = 10,    // OpenMP-based segment-oddevensort.
+  kParallelBlockingOddEvensort = 11,    // Barrier-based segment-oddevensort.
+  kParallelLockFreeOddEvensort = 12,    // Lock-free segment-oddevensort.
+  kParallelStealingOddEvensort = 13,    // Stealing-barrier segment-oddevensort.
+  kParallelWaitFreeOddEvensort = 14,    // Wait-free segment-oddevensort.
+  kParallelGnuMultiwayMergesort = 15,   // GNU multiway-mergesort.
+  kParallelGnuQuicksort = 16,           // GNU quicksort.
+  kParallelGnuBalancedQuicksort = 17,   // GNU balanced-quicksort.
 };
 
 // =============================================================================
@@ -65,7 +73,28 @@ void sort(Iterator begin, Iterator end,
       bitonicsort::stealing(begin, end, num_threads, segment_size, wait_policy);
       break;
     case SortType::kParallelWaitFreeBitonicsort:
-      bitonicsort::stealing(begin, end, num_threads, segment_size, wait_policy);
+      bitonicsort::waitfree(begin, end, num_threads, segment_size);
+      break;
+    case SortType::kSequentialOriginalOddEvensort:
+      oddevensort::original(begin, end);
+      break;
+    case SortType::kSequentialSegmentedOddEvensort:
+      oddevensort::segmented(begin, end, segment_size);
+      break;
+    case SortType::kParallelOmpBasedOddEvensort:
+      oddevensort::ompbased(begin, end, num_threads, segment_size);
+      break;
+    case SortType::kParallelBlockingOddEvensort:
+      oddevensort::blocking(begin, end, num_threads, segment_size, wait_policy);
+      break;
+    case SortType::kParallelLockFreeOddEvensort:
+      oddevensort::lockfree(begin, end, num_threads, segment_size, wait_policy);
+      break;
+    case SortType::kParallelStealingOddEvensort:
+      oddevensort::stealing(begin, end, num_threads, segment_size, wait_policy);
+      break;
+    case SortType::kParallelWaitFreeOddEvensort:
+      oddevensort::waitfree(begin, end, num_threads, segment_size);
       break;
     case SortType::kParallelGnuMultiwayMergesort:
       gnu_impl::multiway_mergesort(begin, end, num_threads);

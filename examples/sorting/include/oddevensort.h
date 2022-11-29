@@ -3,23 +3,24 @@
 // -----------------------------------------------------------------------------
 //
 // This is a series of implementations of different versions of the so-called
-// bitonicsort algorithm for shared-memory computer architectures.
+// Odd-Even Transpose Sort algorithm for shared-memory computer architectures.
 //
 // These implementations are based on `merge` operations on data segments,
 // except the original algorithm which is based on `compare-exchange` operations
 // on individual data elements.
 //
 // Initially, for the segmented implementations, all segments are individually
-// sorted. After that, each sorted segmented is processed by the bitonic merging
-// network. In the end, all the input data is globally sorted.
+// sorted. After that, each sorted segmented is processed by the odd-even
+// merging network. In the end, all the input data is globally sorted.
 //
 // There are different versions of the algorithm.
 //
-//   + An implementation of the original bitonicsort algorithm, which is based
-//     on `compare-exchange` operations.
+//   + An implementation of the original odd-even transposition algorithm, which
+//     is based on `compare-exchange` operations.
 //
 //   + A sequential (not multithreaded) implementation, where a single execution
-//     thread will perform all the merging stages of the bitonic network.
+//     thread will perform all the merging stages of the odd-even transposition
+//     network.
 //
 //   + An OpenMP-based implementation. The concurrency model is delegated to the
 //     OpenMP runtime and its barrier synchronization primitive.
@@ -40,8 +41,8 @@
 //
 // -----------------------------------------------------------------------------
 
-#ifndef EXAMPLES_SORTING_INCLUDE_BITONICSORT_H_
-#define EXAMPLES_SORTING_INCLUDE_BITONICSORT_H_
+#ifndef EXAMPLES_SORTING_INCLUDE_ODDEVENSORT_H_
+#define EXAMPLES_SORTING_INCLUDE_ODDEVENSORT_H_
 
 #include <modcncy/barrier.h>
 #include <modcncy/concurrent_task_queue.h>
@@ -51,7 +52,6 @@
 #include <algorithm>
 #include <atomic>
 #include <functional>
-#include <iostream>
 #include <iterator>
 #include <thread>  // NOLINT(build/c++11)
 #include <utility>
@@ -60,33 +60,24 @@
 #include "examples/sorting/include/merge.h"
 
 namespace sorting {
-namespace bitonicsort {
+namespace oddevensort {
 
 // =============================================================================
-// Original bitonicsort.
+// Original odd-even tranpose sort.
 template <typename Iterator>
 void original(Iterator begin, Iterator end) {
   // Setup.
   const size_t data_size = end - begin;
 
-  // Bitonic sorting network.
-  for (size_t k = 2; k <= data_size; k *= 2) {
-    for (size_t j = k >> 1; j > 0; j >>= 1) {
-      for (size_t i = 0; i < data_size; ++i) {
-        const size_t ij = i ^ j;
-        if (i < ij) {
-          if ((i & k) == 0 && *(begin + i) > *(begin + ij))
-            std::swap(*(begin + i), *(begin + ij));
-          if ((i & k) != 0 && *(begin + i) < *(begin + ij))
-            std::swap(*(begin + i), *(begin + ij));
-        }
-      }
-    }
-  }
+  // Odd-Even transposition network.
+  for (size_t i = 0; i < data_size; ++i)
+    for (size_t j = i % 2; j < data_size - 1; j += 2)
+      if (*(begin + j) > *(begin + j + 1))
+        std::swap(*(begin + j), *(begin + j + 1));
 }
 
 // =============================================================================
-// Segmented bitonicsort.
+// Segmented odd-even transpose sort.
 template <typename Iterator>
 void segmented(Iterator begin, Iterator end, size_t segment_size) {
   // Setup.
@@ -95,36 +86,22 @@ void segmented(Iterator begin, Iterator end, size_t segment_size) {
   typedef typename std::iterator_traits<Iterator>::value_type value_type;
   value_type* buffer = new value_type[2 * segment_size];
 
-  // Sort each indiviual segment.
+  // Sort each individual segment.
   for (size_t i = 0; i < data_size; i += segment_size)
     std::sort(begin + i, begin + i + segment_size);
-
-  // Bitonic merging network.
-  for (size_t k = 2; k <= num_segments; k <<= 1) {
-    for (size_t j = k >> 1; j > 0; j >>= 1) {
-      for (size_t i = 0; i < num_segments; ++i) {
-        const size_t ij = i ^ j;
-        if (i < ij) {
-          if ((i & k) == 0)
-            merge::Up(/*segment1=*/&*(begin + i * segment_size),
-                      /*segment2=*/&*(begin + ij * segment_size),
-                      /*buffer=*/buffer,
-                      /*segment_size=*/segment_size);
-          else
-            merge::Dn(/*segment1=*/&*(begin + i * segment_size),
-                      /*segment2=*/&*(begin + ij * segment_size),
-                      /*buffer=*/buffer,
-                      /*segment_size=*/segment_size);
-        }
-      }
-    }
-  }
+  // Odd-Even transposition network.
+  for (size_t i = 0; i < num_segments; ++i)
+    for (size_t j = i % 2; j < num_segments && j != num_segments - 1; j += 2)
+      merge::UpFromUpUp(/*segment1=*/&*(begin + j * segment_size),
+                        /*segment2=*/&*(begin + (j + 1) * segment_size),
+                        /*buffer=*/buffer,
+                        /*segment_size=*/segment_size);
 
   delete[] buffer;
 }
 
 // =============================================================================
-// Parallel OpenMP segmented bitonicsort.
+// Parallel OpenMP segmented odd-even transpose sort.
 template <typename Iterator>
 void ompbased(Iterator begin, Iterator end, size_t num_threads,
               size_t segment_size) {
@@ -139,30 +116,19 @@ void ompbased(Iterator begin, Iterator end, size_t num_threads,
     typedef typename std::iterator_traits<Iterator>::value_type value_type;
     value_type* buffer = new value_type[2 * segment_size];
 
-// Sort each indiviual segment.
+// Sort each individual segment.
 #pragma omp for
     for (size_t i = 0; i < data_size; i += segment_size)
       std::sort(begin + i, begin + i + segment_size);
-
-    // Bitonic merging network.
-    for (size_t k = 2; k <= num_segments; k <<= 1) {
-      for (size_t j = k >> 1; j > 0; j >>= 1) {
+    // Odd-Even transposition network.
+    for (size_t i = 0; i < num_segments; ++i) {
 #pragma omp for
-        for (size_t i = 0; i < num_segments; ++i) {
-          const size_t ij = i ^ j;
-          if (i < ij) {
-            if ((i & k) == 0)
-              merge::Up(/*segment1=*/&*(begin + i * segment_size),
-                        /*segment2=*/&*(begin + ij * segment_size),
-                        /*buffer=*/buffer,
-                        /*segment_size=*/segment_size);
-            else
-              merge::Dn(/*segment1=*/&*(begin + i * segment_size),
-                        /*segment2=*/&*(begin + ij * segment_size),
-                        /*buffer=*/buffer,
-                        /*segment_size=*/segment_size);
-          }
-        }
+      for (size_t j = i % 2; j < num_segments; j += 2) {
+        if (j == num_segments - 1) continue;
+        merge::UpFromUpUp(/*segment1=*/&*(begin + j * segment_size),
+                          /*segment2=*/&*(begin + (j + 1) * segment_size),
+                          /*buffer=*/buffer,
+                          /*segment_size=*/segment_size);
       }
     }
 
@@ -171,7 +137,7 @@ void ompbased(Iterator begin, Iterator end, size_t num_threads,
 }
 
 // =============================================================================
-// Parallel pthreads segmented bitonicsort.
+// Parallel pthreads segmented odd-even tranpose sort.
 template <typename Iterator>
 void blocking(Iterator begin, Iterator end, size_t num_threads,
               size_t segment_size,
@@ -198,28 +164,18 @@ void blocking(Iterator begin, Iterator end, size_t num_threads,
     for (size_t i = low_index; i < high_index; i += segment_size)
       std::sort(begin + i, begin + i + segment_size);
 
-    barrier->Wait(num_threads, wait_policy);  // Barrier synchronization.
+    barrier->Wait(num_threads, wait_policy);
 
-    // Bitonic merging network.
-    for (size_t k = 2; k <= num_segments; k <<= 1) {
-      for (size_t j = k >> 1; j > 0; j >>= 1) {
-        for (size_t i = low_segment; i < high_segment; ++i) {
-          const size_t ij = i ^ j;
-          if (i < ij) {
-            if ((i & k) == 0)
-              merge::Up(/*segment1=*/&*(begin + i * segment_size),
-                        /*segment2=*/&*(begin + ij * segment_size),
-                        /*buffer=*/buffer,
-                        /*segment_size=*/segment_size);
-            else
-              merge::Dn(/*segment1=*/&*(begin + i * segment_size),
-                        /*segment2=*/&*(begin + ij * segment_size),
-                        /*buffer=*/buffer,
-                        /*segment_size=*/segment_size);
-          }
-        }
-        barrier->Wait(num_threads, wait_policy);  // Barrier synchronization.
+    // Odd-Even transposition network.
+    for (size_t i = 0; i < num_segments; ++i) {
+      for (size_t j = (i % 2) + low_segment; j < high_segment; j += 2) {
+        if (j == num_segments - 1) break;
+        merge::UpFromUpUp(/*segment1=*/&*(begin + j * segment_size),
+                          /*segment2=*/&*(begin + (j + 1) * segment_size),
+                          /*buffer=*/buffer,
+                          /*segment_size=*/segment_size);
       }
+      barrier->Wait(num_threads, wait_policy);
     }
 
     delete[] buffer;
@@ -247,7 +203,7 @@ void blocking(Iterator begin, Iterator end, size_t num_threads,
 }
 
 // =============================================================================
-// Parallel non-blocking segmented bitonicsort.
+// Parallel non-blocking segmented odd-even transpose sort.
 template <typename Iterator>
 void lockfree(Iterator begin, Iterator end, size_t num_threads,
               size_t segment_size,
@@ -275,50 +231,44 @@ void lockfree(Iterator begin, Iterator end, size_t num_threads,
       // Sort each indiviual segment.
       std::sort(begin + i, begin + i + segment_size);
       // Mark segment "ready" for next stage.
-      const size_t segment_id = i / segment_size;
-      segment_stage_count[segment_id].fetch_add(1);
+      segment_stage_count[/*segment_id=*/i / segment_size].fetch_add(1);
     }
 
     // Mark this thread "ready" for next stage.
     ++my_stage;
 
-    // Bitonic merging network.
-    for (size_t k = 2; k <= num_segments; k <<= 1) {
-      for (size_t j = k >> 1; j > 0; j >>= 1) {
-        for (size_t i = low_segment; i < high_segment; ++i) {
-          const size_t ij = i ^ j;
-          if (i < ij) {
-            const size_t segment1_index = i * segment_size;
-            const size_t segment2_index = ij * segment_size;
-            const size_t segment1_id = segment1_index / segment_size;
-            const size_t segment2_id = segment2_index / segment_size;
+    // Odd-Even transposition network.
+    for (size_t i = 0; i < num_segments; ++i) {
+      for (size_t j = (i % 2) + low_segment; j < high_segment; j += 2) {
+        const size_t segment1_id = j;
+        const size_t segment2_id = j + 1;
+        const size_t segment1_index = j * segment_size;
+        const size_t segment2_index = segment1_index + segment_size;
 
-            // Wait until the segments I need are on my same stage.
-            while (my_stage != segment_stage_count[segment1_id].load())
-              wait_policy();
-            while (my_stage != segment_stage_count[segment2_id].load())
-              wait_policy();
-
-            if ((i & k) == 0)
-              merge::Up(/*segment1=*/&*(begin + segment1_index),
-                        /*segment2=*/&*(begin + segment2_index),
-                        /*buffer=*/buffer,
-                        /*segment_size=*/segment_size);
-            else
-              merge::Dn(/*segment1=*/&*(begin + segment1_index),
-                        /*segment2=*/&*(begin + segment2_index),
-                        /*buffer=*/buffer,
-                        /*segment_size=*/segment_size);
-
-            // Mark segments "ready" for next stage.
-            segment_stage_count[segment1_id].fetch_add(1);
-            segment_stage_count[segment2_id].fetch_add(1);
-          }
+        if (j == 1) {
+          segment_stage_count[/*segment_id=*/0].fetch_add(1);
+        }
+        if (j == num_segments - 1) {
+          segment_stage_count[/*segment_id=*/j].fetch_add(1);
+          break;
         }
 
-        // Mark this thread "ready" for next stage.
-        ++my_stage;
+        while (my_stage != segment_stage_count[segment1_id].load())
+          wait_policy();
+        while (my_stage != segment_stage_count[segment2_id].load())
+          wait_policy();
+
+        merge::UpFromUpUp(/*segment1=*/&*(begin + segment1_index),
+                          /*segment2=*/&*(begin + segment2_index),
+                          /*buffer=*/buffer,
+                          /*segment_size=*/segment_size);
+
+        segment_stage_count[segment1_id].fetch_add(1);
+        segment_stage_count[segment2_id].fetch_add(1);
       }
+
+      // Mark this thread "ready" for next stage.
+      ++my_stage;
     }
 
     delete[] buffer;
@@ -347,7 +297,7 @@ void lockfree(Iterator begin, Iterator end, size_t num_threads,
 }
 
 // =============================================================================
-// Parallel pthreads segmented bitonicsort plus task stealing.
+// Parallel pthreads segmented odd-even transpose sort plus task stealing.
 template <typename Iterator>
 void stealing(Iterator begin, Iterator end, size_t num_threads,
               size_t segment_size,
@@ -369,9 +319,9 @@ void stealing(Iterator begin, Iterator end, size_t num_threads,
     const size_t low_index = low_segment * segment_size;
     const size_t high_index = high_segment * segment_size;
 
-    auto execute_tasks = [&](size_t queue_index) {
+    auto execute_tasks = [&](size_t thread_index) {
       for (;;) {
-        std::function<void()> task = std::move(queue[queue_index]->Pop());
+        std::function<void()> task = std::move(queue[thread_index]->Pop());
         if (task == nullptr) break;
         task();
       }
@@ -379,7 +329,7 @@ void stealing(Iterator begin, Iterator end, size_t num_threads,
 
     auto steal_tasks = [&]() {
       for (size_t i = thread_index + 1; i < num_threads + thread_index; ++i)
-        execute_tasks(/*queue_index=*/i % num_threads);
+        execute_tasks(/*thread_index=*/(thread_index + i) % num_threads);
       wait_policy();
     };  // function steal_tasks
 
@@ -390,48 +340,26 @@ void stealing(Iterator begin, Iterator end, size_t num_threads,
     }
     execute_tasks(thread_index);
 
-    barrier->Wait(num_threads, steal_tasks);  // Barrier synchronization.
+    barrier->Wait(num_threads, steal_tasks);
 
-    // Bitonic merging network.
-    for (size_t k = 2; k <= num_segments; k <<= 1) {
-      for (size_t j = k >> 1; j > 0; j >>= 1) {
-        // This barrier is necessary to acquire stealed work from other threads.
-        barrier->Wait(num_threads, steal_tasks);
+    // Odd-Even transposition network.
+    for (size_t i = 0; i < num_segments; ++i) {
+      barrier->Wait(num_threads, steal_tasks);
 
-        for (size_t i = low_segment; i < high_segment; ++i) {
-          const size_t ij = i ^ j;
-          if (i < ij) {
-            if ((i & k) == 0)
-              queue[thread_index]->Push([begin, i, ij, segment_size] {
-                typedef typename std::iterator_traits<Iterator>::value_type val;
-                // TODO(arturogr-dev): There is room for optimization here.
-                // Avoid multiple allocations by allowing arguments in the queue
-                // of tasks and, therefore, reuse the same buffer for all calls.
-                std::vector<val> buffer(2 * segment_size);
-                merge::Up(/*segment1=*/&*(begin + i * segment_size),
-                          /*segment2=*/&*(begin + ij * segment_size),
-                          /*buffer=*/buffer.data(),
-                          /*segment_size=*/segment_size);
-              });
-            else
-              queue[thread_index]->Push([begin, i, ij, segment_size] {
-                typedef typename std::iterator_traits<Iterator>::value_type val;
-                // TODO(arturogr-dev): There is room for optimization here.
-                // Avoid multiple allocations by allowing arguments in the queue
-                // of tasks and, therefore, reuse the same buffer for all calls.
-                std::vector<val> buffer(2 * segment_size);
-                merge::Dn(/*segment1=*/&*(begin + i * segment_size),
-                          /*segment2=*/&*(begin + ij * segment_size),
-                          /*buffer=*/buffer.data(),
-                          /*segment_size=*/segment_size);
-              });
-          }
-        }
-        execute_tasks(thread_index);
-
-        // This barrier is necessary to publish stealed work to other threads.
-        barrier->Wait(num_threads, steal_tasks);
+      for (size_t j = (i % 2) + low_segment; j < high_segment; j += 2) {
+        if (j == num_segments - 1) break;
+        queue[thread_index]->Push([begin, j, segment_size] {
+          typedef typename std::iterator_traits<Iterator>::value_type val;
+          std::vector<val> buffer(2 * segment_size);
+          merge::UpFromUpUp(/*segment1=*/&*(begin + j * segment_size),
+                            /*segment2=*/&*(begin + (j + 1) * segment_size),
+                            /*buffer=*/buffer.data(),
+                            /*segment_size=*/segment_size);
+        });
       }
+      execute_tasks(thread_index);
+
+      barrier->Wait(num_threads, steal_tasks);
     }
   };  // function thread_work
 
@@ -465,7 +393,7 @@ void stealing(Iterator begin, Iterator end, size_t num_threads,
 }
 
 // =============================================================================
-// Parallel non-blocking segmented bitonicsort plus task stealing.
+// Parallel non-blocking segmented odd-even transpose sort plus task stealing.
 template <typename Iterator>
 void waitfree(Iterator begin, Iterator end, size_t num_threads,
               size_t segment_size) {
@@ -517,71 +445,53 @@ void waitfree(Iterator begin, Iterator end, size_t num_threads,
     // Mark this thread "ready" for next stage.
     thread_stage_count[thread_index].fetch_add(1, std::memory_order_relaxed);
 
-    // Bitonic merging network.
-    for (size_t k = 2; k <= num_segments; k <<= 1) {
-      for (size_t j = k >> 1; j > 0; j >>= 1) {
-        for (size_t i = low_segment; i < high_segment; ++i) {
-          const size_t ij = i ^ j;
-          if (i < ij) {
-            const size_t segment1_index = i * segment_size;
-            const size_t segment2_index = ij * segment_size;
-            const size_t segment1_id = segment1_index / segment_size;
-            const size_t segment2_id = segment2_index / segment_size;
+    // Odd-Even transposition network.
+    for (size_t i = 0; i < num_segments; ++i) {
+      for (size_t j = (i % 2) + low_segment; j < high_segment; j += 2) {
+        const size_t segment1_id = j;
+        const size_t segment2_id = j + 1;
+        const size_t segment1_index = j * segment_size;
+        const size_t segment2_index = segment1_index + segment_size;
 
-            // Wait until the segments I need are on my same stage.
-            while (thread_stage_count[thread_index].load(
-                       std::memory_order_relaxed) !=
-                   segment_stage_count[segment1_id].load())
-              steal_tasks(thread_index);
-            while (thread_stage_count[thread_index].load(
-                       std::memory_order_relaxed) !=
-                   segment_stage_count[segment2_id].load())
-              steal_tasks(thread_index);
-
-            if ((i & k) == 0) {
-              queue[thread_index]->Push(
-                  [begin, segment_stage_count, i, ij, segment1_id, segment2_id,
-                   segment1_index, segment2_index, segment_size] {
-                    std::atomic_thread_fence(std::memory_order_acquire);
-                    typedef typename std::iterator_traits<Iterator>::value_type
-                        value_type;
-                    value_type* buffer = new value_type[2 * segment_size];
-                    merge::Up(/*segment1=*/&*(begin + segment1_index),
-                              /*segment2=*/&*(begin + segment2_index),
-                              /*buffer=*/buffer,
-                              /*segment_size=*/segment_size);
-                    delete[] buffer;
-                    // Mark segments "ready" for next stage.
-                    segment_stage_count[segment1_id].fetch_add(1);
-                    segment_stage_count[segment2_id].fetch_add(1);
-                  });
-            } else {
-              queue[thread_index]->Push(
-                  [begin, segment_stage_count, i, ij, segment1_id, segment2_id,
-                   segment1_index, segment2_index, segment_size] {
-                    std::atomic_thread_fence(std::memory_order_acquire);
-                    typedef typename std::iterator_traits<Iterator>::value_type
-                        value_type;
-                    value_type* buffer = new value_type[2 * segment_size];
-                    merge::Dn(/*segment1=*/&*(begin + segment1_index),
-                              /*segment2=*/&*(begin + segment2_index),
-                              /*buffer=*/buffer,
-                              /*segment_size=*/segment_size);
-                    delete[] buffer;
-                    // Mark segments "ready" for next stage.
-                    segment_stage_count[segment1_id].fetch_add(1);
-                    segment_stage_count[segment2_id].fetch_add(1);
-                  });
-            }
-          }
+        if (j == 1) {
+          segment_stage_count[/*segment_id=*/0].fetch_add(1);
         }
-        execute_tasks(thread_index);
-        steal_tasks(thread_index);
+        if (j == num_segments - 1) {
+          segment_stage_count[/*segment_id=*/j].fetch_add(1);
+          break;
+        }
 
-        // Mark this thread "ready" for next stage.
-        thread_stage_count[thread_index].fetch_add(1,
-                                                   std::memory_order_relaxed);
+        while (
+            thread_stage_count[thread_index].load(std::memory_order_relaxed) !=
+            segment_stage_count[segment1_id].load())
+          steal_tasks(thread_index);
+        while (
+            thread_stage_count[thread_index].load(std::memory_order_relaxed) !=
+            segment_stage_count[segment2_id].load())
+          steal_tasks(thread_index);
+
+        queue[thread_index]->Push([begin, segment_stage_count, segment1_id,
+                                   segment2_id, segment1_index, segment2_index,
+                                   segment_size] {
+          std::atomic_thread_fence(std::memory_order_acquire);
+          typedef
+              typename std::iterator_traits<Iterator>::value_type value_type;
+          value_type* buffer = new value_type[2 * segment_size];
+          merge::UpFromUpUp(/*segment1=*/&*(begin + segment1_index),
+                            /*segment2=*/&*(begin + segment2_index),
+                            /*buffer=*/buffer,
+                            /*segment_size=*/segment_size);
+          delete[] buffer;
+          // Mark segments "ready" for next stage.
+          segment_stage_count[segment1_id].fetch_add(1);
+          segment_stage_count[segment2_id].fetch_add(1);
+        });
       }
+      execute_tasks(thread_index);
+      steal_tasks(thread_index);
+
+      // Mark this thread "ready" for next stage.
+      thread_stage_count[thread_index].fetch_add(1, std::memory_order_relaxed);
     }
   };  // function thread_work
 
@@ -620,7 +530,7 @@ void waitfree(Iterator begin, Iterator end, size_t num_threads,
   delete[] thread_stage_count;
 }
 
-}  // namespace bitonicsort
+}  // namespace oddevensort
 }  // namespace sorting
 
-#endif  // EXAMPLES_SORTING_INCLUDE_BITONICSORT_H_
+#endif  // EXAMPLES_SORTING_INCLUDE_ODDEVENSORT_H_

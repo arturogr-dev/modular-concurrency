@@ -56,14 +56,14 @@ TEST_P(ConcurrentTaskQueueBehaviorTest, ConcurrentTaskQueueExecution) {
   std::vector<std::thread> threads;
   threads.reserve(num_threads);
   for (int i = 0; i < num_threads; ++i) {
-    threads.emplace_back([&, i] {
+    threads.emplace_back([&] {
       // All threads submit a task to increase the counter by 1.
       queue->Push([&] {
         std::unique_lock<std::mutex> lock(mutex);
         ++counter;
       });
       // Each thread pops a task and executes it.
-      std::function<void()> task = queue->Pop();
+      std::function<void()> task = std::move(queue->Pop());
       task();
       // Wait until all threads have executed one task.
       barrier->Wait(num_threads);

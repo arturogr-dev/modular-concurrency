@@ -53,7 +53,7 @@ all: setup clean $(BUILD_DIR) build teardown
 setup:
 	$(info $(__YELLOW__)-- The Modular-Concurrency Project.$(__SGR0__))
 	$(eval __TARGET__=1)
-	$(info $(__GREEN__)[ $(__PERCENT__)%]$(__SGR0__) $(__MAGENTA__)Start building.$(__SGR0__))
+	$(info $(__GREEN__)[  $(__PERCENT__)%]$(__SGR0__) $(__MAGENTA__)Start building.$(__SGR0__))
 
 clean:
 	$(eval __TARGET__=2)

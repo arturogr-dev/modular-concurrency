@@ -10,8 +10,8 @@
 //
 //   It will test the following scenario, assuming 32-bit integers:
 //
-//     -> data_size = 1 << 15 = [elements] = [kB]
-//     -> segment_size = 1024 [elements] =  [bytes]
+//     -> data_size = 1 << 15 = [elements] = 128 [kB]
+//     -> segment_size = 1024 [elements] =  4096 [bytes]
 //
 // + Example usage:
 //
@@ -44,7 +44,7 @@ namespace sorting {
 // Size of the input vector to be sorted by shifting this value. This represents
 // the number of shifts to be performed to generate the input data size.
 // Ensuring an input size of power of 2 for bitonicsort.
-MODCNCY_DEFINE_int32(input_shift, 22);
+MODCNCY_DEFINE_int32(input_shift, 15);
 
 // Number of elements in a segment. Thus, the size of individual smaller sorts.
 MODCNCY_DEFINE_int32(segment_size, 1024);
@@ -62,7 +62,9 @@ namespace {
 bool is_sequential(SortType sort_type) {
   return sort_type == SortType::kSequentialStdSort ||
          sort_type == SortType::kSequentialOriginalBitonicsort ||
-         sort_type == SortType::kSequentialSegmentedBitonicsort;
+         sort_type == SortType::kSequentialSegmentedBitonicsort ||
+         sort_type == SortType::kSequentialOriginalOddEvensort ||
+         sort_type == SortType::kSequentialSegmentedOddEvensort;
 }
 
 // =============================================================================
@@ -78,6 +80,25 @@ bool is_bitonicsort(SortType sort_type) {
 }
 
 // =============================================================================
+// Verifies if a odd-even transpose sort implementation is executed.
+bool is_oddevensort(SortType sort_type) {
+  return sort_type == SortType::kSequentialOriginalOddEvensort ||
+         sort_type == SortType::kSequentialSegmentedOddEvensort ||
+         sort_type == SortType::kParallelOmpBasedOddEvensort ||
+         sort_type == SortType::kParallelBlockingOddEvensort ||
+         sort_type == SortType::kParallelLockFreeOddEvensort ||
+         sort_type == SortType::kParallelStealingOddEvensort ||
+         sort_type == SortType::kParallelWaitFreeOddEvensort;
+}
+
+// =============================================================================
+// Verifies if a wait-free sort implementation is executed.
+bool is_waitfree(SortType sort_type) {
+  return sort_type == SortType::kParallelWaitFreeBitonicsort ||
+         sort_type == SortType::kParallelWaitFreeOddEvensort;
+}
+
+// =============================================================================
 // Computes the logarithm base 2 of a power of 2.
 size_t log2(size_t x) { return __builtin_ctz(x); }
 
@@ -86,13 +107,15 @@ size_t log2(size_t x) { return __builtin_ctz(x); }
 std::string algorithm_stages_label(size_t num_segments, SortType sort_type) {
   if (is_bitonicsort(sort_type))
     return std::to_string((log2(num_segments) * (log2(num_segments) + 1)) / 2);
+  if (is_oddevensort(sort_type)) return std::to_string(num_segments);
   return "N/A";  // TODO(arturogr-dev): Check others to get this right.
 }
 
 // =============================================================================
 // Returns the applied wait policy.
 std::string wait_policy_label(const std::string& policy, SortType sort_type) {
-  if (is_bitonicsort(sort_type) && !is_sequential(sort_type)) {
+  if ((is_bitonicsort(sort_type) || is_oddevensort(sort_type)) &&
+      !is_sequential(sort_type) && !is_waitfree(sort_type)) {
     if (policy == "cpu_no_op" || policy == "cpu_yield" || policy == "cpu_pause")
       return policy;
     return "cpu_yield";
@@ -141,6 +164,7 @@ void BM_Sort(benchmark::State& state) {  // NOLINT(runtime/references)
 
     // Prepare for next iteration.
     state.PauseTiming();
+    assert(data.size() == data_size);
     assert(IsSorted(data) && "Data should be sorted");
     std::shuffle(data.begin(), data.end(), rand_gen);
     assert(!IsSorted(data) && "Data should not be sorted after shuffle");
@@ -183,6 +207,27 @@ BENCHMARK_TEMPLATE(BM_Sort, int32_t, SortType::kParallelStealingBitonicsort)
 BENCHMARK_TEMPLATE(BM_Sort, int32_t, SortType::kParallelWaitFreeBitonicsort)
     ->Unit(benchmark::kMillisecond)
     ->UseRealTime();
+BENCHMARK_TEMPLATE(BM_Sort, int32_t, SortType::kSequentialOriginalOddEvensort)
+    ->Unit(benchmark::kMillisecond)
+    ->UseRealTime();
+BENCHMARK_TEMPLATE(BM_Sort, int32_t, SortType::kSequentialSegmentedOddEvensort)
+    ->Unit(benchmark::kMillisecond)
+    ->UseRealTime();
+BENCHMARK_TEMPLATE(BM_Sort, int32_t, SortType::kParallelOmpBasedOddEvensort)
+    ->Unit(benchmark::kMillisecond)
+    ->UseRealTime();
+BENCHMARK_TEMPLATE(BM_Sort, int32_t, SortType::kParallelBlockingOddEvensort)
+    ->Unit(benchmark::kMillisecond)
+    ->UseRealTime();
+BENCHMARK_TEMPLATE(BM_Sort, int32_t, SortType::kParallelLockFreeOddEvensort)
+    ->Unit(benchmark::kMillisecond)
+    ->UseRealTime();
+BENCHMARK_TEMPLATE(BM_Sort, int32_t, SortType::kParallelStealingOddEvensort)
+    ->Unit(benchmark::kMillisecond)
+    ->UseRealTime();
+BENCHMARK_TEMPLATE(BM_Sort, int32_t, SortType::kParallelWaitFreeOddEvensort)
+    ->Unit(benchmark::kMillisecond)
+    ->UseRealTime();
 BENCHMARK_TEMPLATE(BM_Sort, int32_t, SortType::kParallelGnuMultiwayMergesort)
     ->Unit(benchmark::kMillisecond)
     ->UseRealTime();
@@ -214,6 +259,27 @@ BENCHMARK_TEMPLATE(BM_Sort, int64_t, SortType::kParallelStealingBitonicsort)
     ->Unit(benchmark::kMillisecond)
     ->UseRealTime();
 BENCHMARK_TEMPLATE(BM_Sort, int64_t, SortType::kParallelWaitFreeBitonicsort)
+    ->Unit(benchmark::kMillisecond)
+    ->UseRealTime();
+BENCHMARK_TEMPLATE(BM_Sort, int64_t, SortType::kSequentialOriginalOddEvensort)
+    ->Unit(benchmark::kMillisecond)
+    ->UseRealTime();
+BENCHMARK_TEMPLATE(BM_Sort, int64_t, SortType::kSequentialSegmentedOddEvensort)
+    ->Unit(benchmark::kMillisecond)
+    ->UseRealTime();
+BENCHMARK_TEMPLATE(BM_Sort, int64_t, SortType::kParallelOmpBasedOddEvensort)
+    ->Unit(benchmark::kMillisecond)
+    ->UseRealTime();
+BENCHMARK_TEMPLATE(BM_Sort, int64_t, SortType::kParallelBlockingOddEvensort)
+    ->Unit(benchmark::kMillisecond)
+    ->UseRealTime();
+BENCHMARK_TEMPLATE(BM_Sort, int64_t, SortType::kParallelLockFreeOddEvensort)
+    ->Unit(benchmark::kMillisecond)
+    ->UseRealTime();
+BENCHMARK_TEMPLATE(BM_Sort, int64_t, SortType::kParallelStealingOddEvensort)
+    ->Unit(benchmark::kMillisecond)
+    ->UseRealTime();
+BENCHMARK_TEMPLATE(BM_Sort, int64_t, SortType::kParallelWaitFreeOddEvensort)
     ->Unit(benchmark::kMillisecond)
     ->UseRealTime();
 BENCHMARK_TEMPLATE(BM_Sort, int64_t, SortType::kParallelGnuMultiwayMergesort)
