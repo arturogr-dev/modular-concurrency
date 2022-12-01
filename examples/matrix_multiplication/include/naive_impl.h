@@ -41,9 +41,9 @@ std::vector<std::vector<T>> parallel(const std::vector<std::vector<T>>& A,
   omp_set_dynamic(0);
   omp_set_num_threads(num_threads);
   std::vector<std::vector<T>> result(A.size(), std::vector<T>(B[0].size()));
-  #pragma omp parallel shared(A, B, result)
+#pragma omp parallel shared(A, B, result)
   {
-    #pragma omp for nowait
+#pragma omp for nowait
     for (size_t i = 0; i < A.size(); ++i) {
       for (size_t j = 0; j < B[0].size(); ++j) {
         for (size_t k = 0; k < A[0].size(); ++k) {
