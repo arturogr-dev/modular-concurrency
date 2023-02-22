@@ -22,6 +22,9 @@
 //     -> data_size = 1 << 22 = 4194304 [elements] = 16384 [kB]
 //     -> segment_size = 2048 [elements] =  8192 [bytes]
 //
+//  In this case, it is not the size of an integer, but the size of a complex.
+//  So sizes may vary.
+//
 // -----------------------------------------------------------------------------
 
 #include <benchmark/benchmark.h>
@@ -84,7 +87,7 @@ std::vector<std::complex<float>> ComputeSinusoid(size_t size) {
 // =============================================================================
 // Benchmark: Fourier Transform algorithm.
 template <FftType fft_type>
-void BM_Fft(benchmark::State& state) {  // NOLINT(runtime/references)
+void BM_FFT(benchmark::State& state) {  // NOLINT(runtime/references)
   // Setup.
   const size_t data_size = 1 << FLAGS_input_shift;
   const size_t segment_size = FLAGS_segment_size;
@@ -116,13 +119,13 @@ void BM_Fft(benchmark::State& state) {  // NOLINT(runtime/references)
 }
 
 // Register benchmarks.
-BENCHMARK_TEMPLATE(BM_Fft, FftType::kSequentialOriginalFft)
+BENCHMARK_TEMPLATE(BM_FFT, FftType::kSequentialOriginalFft)
     ->Unit(benchmark::kMillisecond)
     ->UseRealTime();
-BENCHMARK_TEMPLATE(BM_Fft, FftType::kParallelBlockingFft)
+BENCHMARK_TEMPLATE(BM_FFT, FftType::kParallelBlockingFft)
     ->Unit(benchmark::kMillisecond)
     ->UseRealTime();
-BENCHMARK_TEMPLATE(BM_Fft, FftType::kParallelLockFreeFft)
+BENCHMARK_TEMPLATE(BM_FFT, FftType::kParallelLockFreeFft)
     ->Unit(benchmark::kMillisecond)
     ->UseRealTime();
 
