@@ -1,0 +1,39 @@
+// Copyright 2022 The Modcncy Authors. All rights reserved.
+// Use of this source code is governed by the license found in the LICENSE file.
+// -----------------------------------------------------------------------------
+//
+// Init test and benchmark configurations for the Fourier Transform examples.
+//
+// -----------------------------------------------------------------------------
+
+#ifndef EXAMPLES_FOURIER_TRANSFORM_TEST_FOURIER_TRANSFORM_INIT_H_
+#define EXAMPLES_FOURIER_TRANSFORM_TEST_FOURIER_TRANSFORM_INIT_H_
+
+#include <modcncy/flags.h>
+
+namespace fourier_transform {
+
+// Declare command line flags to be used.
+MODCNCY_DECLARE_int32(input_shift);
+MODCNCY_DECLARE_int32(segment_size);
+MODCNCY_DECLARE_int32(num_threads);
+MODCNCY_DECLARE_string(wait_policy);
+
+// =============================================================================
+// Parses the declared command line flags.
+void ParseCommandLineFlags(int* argc, char** argv) {
+  for (int i = 1; i < *argc; ++i) {
+    if (modcncy::ParseInt32Flag(argv[i], "input_shift", &FLAGS_input_shift) ||
+        modcncy::ParseInt32Flag(argv[i], "segment_size", &FLAGS_segment_size) ||
+        modcncy::ParseInt32Flag(argv[i], "num_threads", &FLAGS_num_threads) ||
+        modcncy::ParseStringFlag(argv[i], "wait_policy", &FLAGS_wait_policy)) {
+      for (int j = i; j != *argc - 1; ++j) argv[j] = argv[j + 1];
+      --(*argc);
+      --i;
+    }
+  }
+}
+
+}  // namespace fourier_transform
+
+#endif  // EXAMPLES_FOURIER_TRANSFORM_TEST_FOURIER_TRANSFORM_INIT_H_
