@@ -94,9 +94,9 @@ void original(std::complex<float>* data, size_t data_size) {
   // Butterfly operation.
   for (size_t k = 0; k < data_size / 2; ++k) {
     std::complex<float> W =
-        std::exp(std::complex<float>(0, -2 * kPi * k / data_size)) * odd[k];
-    data[k] = even[k] + W;
-    data[data_size / 2 + k] = even[k] - W;
+        std::exp(std::complex<float>(0, -2 * kPi * k / data_size));
+    data[k] = even[k] + odd[k];
+    data[data_size / 2 + k] = W * (even[k] - odd[k]);
   }
 
   delete[] even;
