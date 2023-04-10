@@ -20,6 +20,8 @@ Let's build a __state-of-the-art__ core software technologies hub for multicore 
 
 -- Arturo
 
+__NOTE:__ This is an experimental project and it should be treated as such.
+
 ## Dependencies
 
 - [Google Benchmark](https://github.com/google/benchmark)
