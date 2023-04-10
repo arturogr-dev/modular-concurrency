@@ -77,30 +77,37 @@ static inline void butterfly(std::complex<float>* segment1,
 // =============================================================================
 // Original Recursive Cooley-Tukey FFT.
 void original(std::complex<float>* data, size_t data_size) {
-  // Setup.
-  if (data_size <= 1) return;
+  auto fft_rec = [](std::complex<float>* data, size_t data_size) {
+    // Setup.
+    if (data_size <= 1) return;
 
-  std::complex<float>* even = new std::complex<float>[data_size / 2];
-  std::complex<float>* odd = new std::complex<float>[data_size / 2];
-  for (size_t i = 0; i < data_size / 2; ++i) {
-    even[i] = data[i * 2];
-    odd[i] = data[i * 2 + 1];
-  }
+    std::complex<float>* even = new std::complex<float>[data_size / 2];
+    std::complex<float>* odd = new std::complex<float>[data_size / 2];
+    for (size_t i = 0; i < data_size / 2; ++i) {
+      even[i] = data[i * 2];
+      odd[i] = data[i * 2 + 1];
+    }
 
-  // Recursive butterfly data-flow diagram.
-  original(even, data_size / 2);
-  original(odd, data_size / 2);
+    // Recursive butterfly data-flow diagram.
+    original(even, data_size / 2);
+    original(odd, data_size / 2);
 
-  // Butterfly operation.
-  for (size_t k = 0; k < data_size / 2; ++k) {
-    std::complex<float> W =
-        std::exp(std::complex<float>(0, -2 * kPi * k / data_size));
-    data[k] = even[k] + odd[k];
-    data[data_size / 2 + k] = W * (even[k] - odd[k]);
-  }
+    // Butterfly operation.
+    for (size_t k = 0; k < data_size / 2; ++k) {
+      std::complex<float> W =
+          std::exp(std::complex<float>(0, -2 * kPi * k / data_size));
+      data[k] = even[k] + odd[k];
+      data[data_size / 2 + k] = W * (even[k] - odd[k]);
+    }
 
-  delete[] even;
-  delete[] odd;
+    delete[] even;
+    delete[] odd;
+  };
+
+  fft_rec(data, data_size);
+
+  // Normalize output.
+  for (size_t i = 0; i < data_size; ++i) data[i] /= data_size;
 }
 
 // =============================================================================
